@@ -1,0 +1,40 @@
+service: release-dashboard
+
+frameworkVersion: "2"
+
+provider:
+  name: aws
+  runtime: go1.x
+  stage: dev
+  region: ap-southeast-2
+  memorySize: 128
+  tags:
+    App: ${self:service}
+    ManagedBy: "serverless-framework"
+
+  apiGateway:
+    shouldStartNameWithService: true
+
+custom: ${file(.env.${self:provider.stage}.yaml)}
+
+package:
+  exclude:
+    - ./**
+  include:
+    - ./bin/**
+
+functions:
+  release:
+    handler: bin/release
+    events:
+      - http:
+          path: release
+          method: post
+          cors: true
+          authorizer: aws_iam
+    environment:
+      GITHUB_TOKEN: ${self:custom.GITHUB_TOKEN}
+      WEBHOOK_URL: ${self:custom.WEBHOOK_URL}
+
+resources:
+  - ${file(cloudformation/cognito.yaml)}
