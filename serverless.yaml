@@ -8,12 +8,20 @@ provider:
   stage: dev
   region: ap-southeast-2
   memorySize: 128
+  logRetentionInDays: 7
   tags:
     App: ${self:service}
     ManagedBy: "serverless-framework"
 
   apiGateway:
     shouldStartNameWithService: true
+
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - cognito-idp:AdminCreateUser
+      Resource:
+        - !GetAtt [CognitoUserPool, Arn]
 
 custom: ${file(.env.${self:provider.stage}.yaml)}
 
@@ -24,14 +32,36 @@ package:
     - ./bin/**
 
 functions:
+  create_user:
+    handler: bin/create_user
+    events:
+      # - http:
+      #     path: create_user
+      #     method: post
+    maximumRetryAttempts: 0
+    environment:
+      USER_POOL_ID: !Ref CognitoUserPool
   release:
     handler: bin/release
     events:
-      - http:
-          path: release
-          method: post
-          cors: true
-          authorizer: aws_iam
+      # - http:
+      #     path: release
+      #     method: post
+      #     cors: True
+      #     authorizers:
+      #       serviceAuthorizer:
+      #         identitySource: $request.header.Authorization
+      #         issuerUrl:
+      #           Fn::Join:
+      #             - ""
+      #             - - "https://cognito-idp."
+      #               - "${self:provider.region}"
+      #               - ".amazonaws.com/"
+      #               - !Ref CognitoUserPool
+      #         audience:
+      #           - Ref: CognitoUserPoolClient
+
+    timeout: 10
     environment:
       GITHUB_TOKEN: ${self:custom.GITHUB_TOKEN}
       WEBHOOK_URL: ${self:custom.WEBHOOK_URL}

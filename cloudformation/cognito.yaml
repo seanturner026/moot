@@ -7,6 +7,13 @@ Resources:
         - email
       AutoVerifiedAttributes:
         - email
+      PasswordPolicy:
+        MinimumLength: 36
+        RequireLowercase: true
+        RequireNumbers: true
+        RequireSymbols: true
+        RequireUppercase: true
+        TemporaryPasswordValidityDays: 180
 
   CognitoUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
@@ -89,3 +96,11 @@ Resources:
                   - "cognito-sync:*"
                   - "cognito-identity:*"
                 Resource: "*"
+
+  CognitoAdminUser:
+    Type: AWS::Cognito::UserPoolUser
+    Properties:
+      DesiredDeliveryMediums:
+        - EMAIL
+      Username: ${self:custom.ADMIN_EMAIL}
+      UserPoolId: !Ref CognitoUserPool

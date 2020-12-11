@@ -2,7 +2,8 @@
 
 build: gomodgen
 	export GO111MODULE=on
-	env GOOS=linux go build -ldflags="-s -w" -o bin/release release/main.go
+	env GOOS=linux go build -ldflags="-s -w" -o bin/release     lambdas/release/main.go
+	env GOOS=linux go build -ldflags="-s -w" -o bin/create_user lambdas/create_user/main.go
 
 clean:
 	rm -rf ./bin ./vendor go.sum
