@@ -6,13 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
-	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/google/go-github/github"
+	"github.com/seanturner026/serverless-release-dashboard/modules"
 	"golang.org/x/oauth2"
 )
 
@@ -29,11 +28,6 @@ type releaseEvent struct {
 // response is of type APIGatewayProxyResponse which leverages the AWS Lambda Proxy Request
 // functionality (default behavior)
 type response events.APIGatewayProxyResponse
-
-// slackRequestBody defines the schema for POSTs to Slack webhooks
-type slackRequestBody struct {
-	Text string `json:"text"`
-}
 
 var (
 	clientGithub *github.Client
@@ -73,7 +67,7 @@ func createPullRequest(githubCtx context.Context, c *github.Client, r releaseEve
 
 	if pullRequestResponse.Mergeable != nil {
 		log.Printf("[ERROR] Pull request %v not mergeable, %v", r.GithubRepo, err)
-		postToSlack(fmt.Sprintf(
+		modules.PostToSlack(os.Getenv("WEBHOOK_URL"), fmt.Sprintf(
 			"Github pull request for %v version %v is un-mergeable, please fix merge conflicts and re-release.",
 			r.GithubRepo,
 			r.ReleaseVersion,
@@ -103,7 +97,7 @@ func mergePullRequest(githubCtx context.Context, c *github.Client, prNumber int,
 
 	if !*mergeResult.Merged {
 		log.Printf("[ERROR] %v pull request %v not merged", r.GithubRepo, prNumber)
-		postToSlack(fmt.Sprintf(
+		modules.PostToSlack(os.Getenv("WEBHOOK_URL"), fmt.Sprintf(
 			"API request to merge github pull request %v for %v version %v failed.",
 			prNumber,
 			r.GithubRepo,
@@ -134,38 +128,11 @@ func createRelease(githubCtx context.Context, c *github.Client, r releaseEvent) 
 
 	if err != nil || resp.Response.StatusCode != 200 {
 		log.Printf("[ERROR] Unable to create %v release version %v, %v", r.GithubRepo, r.ReleaseVersion, err)
-		postToSlack(fmt.Sprintf(
+		modules.PostToSlack(os.Getenv("WEBHOOK_URL"), fmt.Sprintf(
 			"Unable to create %v release version %v on Github.",
 			r.GithubRepo,
 			r.ReleaseVersion,
 		))
-		os.Exit(0)
-	}
-}
-
-// postToSlack reads a webhookURL from the provided environment variable, and sends the message
-// argument to the channel associated with the webhookURL.
-func postToSlack(message string) {
-	webhookURL := os.Getenv("WEBHOOK_URL")
-	slackBody, _ := json.Marshal(slackRequestBody{Text: message})
-	req, err := http.NewRequest(http.MethodPost, webhookURL, bytes.NewBuffer(slackBody))
-	if err != nil {
-		log.Printf("[ERROR] Unable to marshal json, %v", err)
-		os.Exit(0)
-	}
-
-	req.Header.Add("Content-Type", "application/json")
-	clientSlack := &http.Client{Timeout: 10 * time.Second}
-	resp, err := clientSlack.Do(req)
-	if err != nil {
-		log.Printf("[ERROR] Unable to form POST request, %v", err)
-		os.Exit(0)
-	}
-
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(resp.Body)
-	if buf.String() != "ok" {
-		log.Println("[ERROR] Non-ok response returned from Slack")
 		os.Exit(0)
 	}
 }
@@ -175,7 +142,7 @@ func handler(ctx context.Context, r releaseEvent) (response, error) {
 	pr := createPullRequest(ctx, clientGithub, r)
 	mergePullRequest(ctx, clientGithub, *pr.Number, r)
 	createRelease(ctx, clientGithub, r)
-	postToSlack(fmt.Sprintf(
+	modules.PostToSlack(os.Getenv("WEBHOOK_URL"), fmt.Sprintf(
 		"Starting release for %v version %v...",
 		r.GithubRepo,
 		r.ReleaseVersion,

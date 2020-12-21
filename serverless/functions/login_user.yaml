@@ -1,0 +1,6 @@
+login_user:
+  handler: bin/login_user
+  events:
+  environment:
+    CLIENT_POOL_ID: !Ref CognitoUserPoolClient
+    USER_POOL_ID: !Ref CognitoUserPool

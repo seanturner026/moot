@@ -1,0 +1,11 @@
+create_user:
+  handler: bin/create_user
+  events:
+    # - http:
+    #     path: create_user
+    #     method: post
+  maximumRetryAttempts: 0
+  environment:
+    REGION: ${self:provider.region}
+    USER_POOL_ID: !Ref CognitoUserPool
+    WEBHOOK_URL: ${self:custom.WEBHOOK_URL_ADMIN_CHANNEL}

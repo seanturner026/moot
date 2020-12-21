@@ -11,7 +11,7 @@ provider:
   logRetentionInDays: 7
   tags:
     App: ${self:service}
-    ManagedBy: "serverless-framework"
+    ManagedBy: serverless framework
 
   apiGateway:
     shouldStartNameWithService: true
@@ -20,6 +20,8 @@ provider:
     - Effect: Allow
       Action:
         - cognito-idp:AdminCreateUser
+        - cognito-idp:AdminDeleteUser
+        - cognito-idp:AdminInitiateAuth
       Resource:
         - !GetAtt [CognitoUserPool, Arn]
 
@@ -32,39 +34,10 @@ package:
     - ./bin/**
 
 functions:
-  create_user:
-    handler: bin/create_user
-    events:
-      # - http:
-      #     path: create_user
-      #     method: post
-    maximumRetryAttempts: 0
-    environment:
-      USER_POOL_ID: !Ref CognitoUserPool
-  release:
-    handler: bin/release
-    events:
-      # - http:
-      #     path: release
-      #     method: post
-      #     cors: True
-      #     authorizers:
-      #       serviceAuthorizer:
-      #         identitySource: $request.header.Authorization
-      #         issuerUrl:
-      #           Fn::Join:
-      #             - ""
-      #             - - "https://cognito-idp."
-      #               - "${self:provider.region}"
-      #               - ".amazonaws.com/"
-      #               - !Ref CognitoUserPool
-      #         audience:
-      #           - Ref: CognitoUserPoolClient
-
-    timeout: 10
-    environment:
-      GITHUB_TOKEN: ${self:custom.GITHUB_TOKEN}
-      WEBHOOK_URL: ${self:custom.WEBHOOK_URL}
+  - ${file(serverless/functions/create_user.yaml)}
+  - ${file(serverless/functions/delete_user.yaml)}
+  - ${file(serverless/functions/login_user.yaml)}
+  - ${file(serverless/functions/release.yaml)}
 
 resources:
-  - ${file(cloudformation/cognito.yaml)}
+  - ${file(serverless/cognito.yaml)}

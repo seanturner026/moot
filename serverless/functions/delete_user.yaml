@@ -1,0 +1,6 @@
+delete_user:
+  handler: bin/delete_user
+  events:
+  maximumRetryAttempts: 0
+  environment:
+    USER_POOL_ID: !Ref CognitoUserPool

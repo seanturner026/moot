@@ -7,13 +7,14 @@ Resources:
         - email
       AutoVerifiedAttributes:
         - email
-      PasswordPolicy:
-        MinimumLength: 36
-        RequireLowercase: true
-        RequireNumbers: true
-        RequireSymbols: true
-        RequireUppercase: true
-        TemporaryPasswordValidityDays: 180
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 36
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+          RequireUppercase: true
+          TemporaryPasswordValidityDays: 180
 
   CognitoUserPoolClient:
     Type: AWS::Cognito::UserPoolClient

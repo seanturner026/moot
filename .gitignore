@@ -21,3 +21,4 @@ vendor
 *.out
 
 .env.*
+.DS_Store
