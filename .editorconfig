@@ -16,4 +16,3 @@ indent_style = space
 [*.{json,sh,tf,tfvars,vue,yaml,yml}]
 indent_size = 2
 indent_style = space
-

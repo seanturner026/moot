@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -11,7 +9,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/google/go-github/github"
-	"github.com/seanturner026/serverless-release-dashboard/modules"
+	lib "github.com/seanturner026/serverless-release-dashboard/lib"
 	"golang.org/x/oauth2"
 )
 
@@ -24,10 +22,6 @@ type releaseEvent struct {
 	ReleaseBody    string `json:"release_body"`
 	ReleaseVersion string `json:"release_version"`
 }
-
-// response is of type APIGatewayProxyResponse which leverages the AWS Lambda Proxy Request
-// functionality (default behavior)
-type response events.APIGatewayProxyResponse
 
 var (
 	clientGithub *github.Client
@@ -67,7 +61,7 @@ func createPullRequest(githubCtx context.Context, c *github.Client, r releaseEve
 
 	if pullRequestResponse.Mergeable != nil {
 		log.Printf("[ERROR] Pull request %v not mergeable, %v", r.GithubRepo, err)
-		modules.PostToSlack(os.Getenv("WEBHOOK_URL"), fmt.Sprintf(
+		lib.PostToSlack(os.Getenv("WEBHOOK_URL"), fmt.Sprintf(
 			"Github pull request for %v version %v is un-mergeable, please fix merge conflicts and re-release.",
 			r.GithubRepo,
 			r.ReleaseVersion,
@@ -97,7 +91,7 @@ func mergePullRequest(githubCtx context.Context, c *github.Client, prNumber int,
 
 	if !*mergeResult.Merged {
 		log.Printf("[ERROR] %v pull request %v not merged", r.GithubRepo, prNumber)
-		modules.PostToSlack(os.Getenv("WEBHOOK_URL"), fmt.Sprintf(
+		lib.PostToSlack(os.Getenv("WEBHOOK_URL"), fmt.Sprintf(
 			"API request to merge github pull request %v for %v version %v failed.",
 			prNumber,
 			r.GithubRepo,
@@ -128,7 +122,7 @@ func createRelease(githubCtx context.Context, c *github.Client, r releaseEvent) 
 
 	if err != nil || resp.Response.StatusCode != 200 {
 		log.Printf("[ERROR] Unable to create %v release version %v, %v", r.GithubRepo, r.ReleaseVersion, err)
-		modules.PostToSlack(os.Getenv("WEBHOOK_URL"), fmt.Sprintf(
+		lib.PostToSlack(os.Getenv("WEBHOOK_URL"), fmt.Sprintf(
 			"Unable to create %v release version %v on Github.",
 			r.GithubRepo,
 			r.ReleaseVersion,
@@ -138,35 +132,19 @@ func createRelease(githubCtx context.Context, c *github.Client, r releaseEvent) 
 }
 
 // handler executes the release and notification workflow
-func handler(ctx context.Context, r releaseEvent) (response, error) {
+func handler(ctx context.Context, r releaseEvent) (events.APIGatewayProxyResponse, error) {
+	headers := map[string]string{"Content-Type": "application/json"}
+
 	pr := createPullRequest(ctx, clientGithub, r)
 	mergePullRequest(ctx, clientGithub, *pr.Number, r)
 	createRelease(ctx, clientGithub, r)
-	modules.PostToSlack(os.Getenv("WEBHOOK_URL"), fmt.Sprintf(
+	lib.PostToSlack(os.Getenv("WEBHOOK_URL"), fmt.Sprintf(
 		"Starting release for %v version %v...",
 		r.GithubRepo,
 		r.ReleaseVersion,
 	))
 
-	body, err := json.Marshal(map[string]interface{}{
-		"message": fmt.Sprintf("Released %v version %v successfully,", r.GithubRepo, r.ReleaseVersion),
-	})
-
-	if err != nil {
-		return response{StatusCode: 404}, err
-	}
-
-	var buf bytes.Buffer
-	json.HTMLEscape(&buf, body)
-
-	resp := response{
-		StatusCode:      200,
-		IsBase64Encoded: false,
-		Body:            buf.String(),
-		Headers: map[string]string{
-			"Content-Type": "application/json",
-		},
-	}
+	resp := lib.GenerateResponseBody(fmt.Sprintf("Released %v version %v successfully,", r.GithubRepo, r.ReleaseVersion), 200, nil, headers)
 	return resp, nil
 }
 

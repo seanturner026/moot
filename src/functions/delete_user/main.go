@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"log"
@@ -13,14 +12,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
-	"github.com/seanturner026/serverless-release-dashboard/modules"
+	lib "github.com/seanturner026/serverless-release-dashboard/lib"
 )
 
 type deleteUserEvent struct {
 	EmailAddress string `json:"email_address"`
 }
-
-type response events.APIGatewayProxyResponse
 
 var client *cidp.CognitoIdentityProvider
 
@@ -61,30 +58,16 @@ func deleteUser(e deleteUserEvent) error {
 	return nil
 }
 
-func handler(ctx context.Context, e deleteUserEvent) (response, error) {
+func handler(ctx context.Context, e deleteUserEvent) (events.APIGatewayProxyResponse, error) {
+	headers := map[string]string{"Content-Type": "application/json"}
+
 	err := deleteUser(e)
-	var body string
-	var buf bytes.Buffer
-	var statusCode int
-
 	if err != nil {
-		statusCode = 404
-		body = fmt.Sprintf("Error deleting user %v, %v", e.EmailAddress, err.Error())
-	} else {
-		statusCode = 200
-		body = fmt.Sprintf("Deleted user %v", e.EmailAddress)
+		resp := lib.GenerateResponseBody(fmt.Sprintf("Error deleting user %v", e.EmailAddress), 404, err, headers)
+		return resp, nil
 	}
 
-	buf, statusCode = modules.GenerateResponseBody(body, statusCode)
-
-	resp := response{
-		StatusCode:      statusCode,
-		IsBase64Encoded: false,
-		Body:            buf.String(),
-		Headers: map[string]string{
-			"Content-Type": "application/json",
-		},
-	}
+	resp := lib.GenerateResponseBody(fmt.Sprintf("Deleted user %v", e.EmailAddress), 200, nil, headers)
 	return resp, nil
 }
 

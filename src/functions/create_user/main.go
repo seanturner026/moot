@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"log"
@@ -13,14 +12,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
-	"github.com/seanturner026/serverless-release-dashboard/modules"
+	lib "github.com/seanturner026/serverless-release-dashboard/lib"
 )
 
 type createUserEvent struct {
 	EmailAddress string `json:"email_address"`
 }
-
-type response events.APIGatewayProxyResponse
 
 var client *cidp.CognitoIdentityProvider
 
@@ -89,41 +86,16 @@ func createUser(e createUserEvent) error {
 	return nil
 }
 
-func handler(ctx context.Context, e createUserEvent) (response, error) {
+func handler(ctx context.Context, e createUserEvent) (events.APIGatewayProxyResponse, error) {
+	headers := map[string]string{"Content-Type": "application/json"}
+
 	err := createUser(e)
-	var body string
-	var buf bytes.Buffer
-	var statusCode int
-
 	if err != nil {
-		statusCode = 404
-		body = fmt.Sprintf("Error creating user %v, %v", e.EmailAddress, err.Error())
-	} else {
-		statusCode = 200
-		body = fmt.Sprintf("Created new user %v", e.EmailAddress)
+		resp := lib.GenerateResponseBody(fmt.Sprintf("Error creating user %v", e.EmailAddress), 404, err, headers)
+		return resp, nil
 	}
 
-	buf, statusCode = modules.GenerateResponseBody(body, statusCode)
-	message := fmt.Sprintf(`Successfully created user %v, please have the user run the following command to obtain access:
-
-	aws cognito-idp admin-set-user-password \
-		--user-pool-id %v \
-		--username %v \
-		--password <GENERATE_PASSWORD> \
-		--permanent \
-		--region %v
-	`, e.EmailAddress, os.Getenv("USER_POOL_ID"), e.EmailAddress, os.Getenv("REGION"))
-
-	modules.PostToSlack(os.Getenv("WEBHOOK_URL"), message)
-
-	resp := response{
-		StatusCode:      statusCode,
-		IsBase64Encoded: false,
-		Body:            buf.String(),
-		Headers: map[string]string{
-			"Content-Type": "application/json",
-		},
-	}
+	resp := lib.GenerateResponseBody(fmt.Sprintf("Created new user %v", e.EmailAddress), 200, nil, headers)
 	return resp, nil
 }
 

@@ -1,5 +1,5 @@
-DeleteUser:
-  handler: bin/delete_user
+ListUsers:
+  handler: bin/list_users
   events:
   maximumRetryAttempts: 0
   environment:

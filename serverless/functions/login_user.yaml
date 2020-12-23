@@ -1,4 +1,4 @@
-login_user:
+LoginUser:
   handler: bin/login_user
   events:
   environment:

@@ -7,6 +7,8 @@ Resources:
         - email
       AutoVerifiedAttributes:
         - email
+      # LambdaConfig:
+      #   PreAuthentication: !Ref ResetUserPassword
       Policies:
         PasswordPolicy:
           MinimumLength: 36
@@ -22,8 +24,9 @@ Resources:
       ClientName: ${self:service}-${self:provider.stage}
       UserPoolId: !Ref CognitoUserPool
       ExplicitAuthFlows:
-        - ADMIN_NO_SRP_AUTH
-      GenerateSecret: false
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      GenerateSecret: true
 
   CognitoIdentityPool:
     Type: AWS::Cognito::IdentityPool
