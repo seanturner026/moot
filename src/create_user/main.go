@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"os"
@@ -12,24 +11,28 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
-	lib "github.com/seanturner026/serverless-release-dashboard/lib"
+	cidpif "github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
+	util "github.com/seanturner026/serverless-release-dashboard/pkg/util"
 )
 
 type createUserEvent struct {
 	EmailAddress string `json:"email_address"`
 }
 
-var client *cidp.CognitoIdentityProvider
-
-func init() {
-	client = cidp.New(session.New())
+type application struct {
+	config configuration
 }
 
-func createUser(e createUserEvent) error {
+type configuration struct {
+	UserPoolID string
+	idp        cidpif.CognitoIdentityProviderAPI
+}
+
+func (app *application) createUser(e createUserEvent) error {
 	input := &cidp.AdminCreateUserInput{
-		UserPoolId:             aws.String(os.Getenv("USER_POOL_ID")),
+		UserPoolId:             aws.String(app.config.UserPoolID),
 		Username:               aws.String(e.EmailAddress),
-		DesiredDeliveryMediums: []*string{aws.String("EMAIL")},
+		DesiredDeliveryMediums: aws.StringSlice([]string{"EMAIL"}),
 		ForceAliasCreation:     aws.Bool(true),
 		UserAttributes: []*cidp.AttributeType{
 			{
@@ -38,7 +41,7 @@ func createUser(e createUserEvent) error {
 			},
 		},
 	}
-	_, err := client.AdminCreateUser(input)
+	_, err := app.config.idp.AdminCreateUser(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
@@ -86,19 +89,26 @@ func createUser(e createUserEvent) error {
 	return nil
 }
 
-func handler(ctx context.Context, e createUserEvent) (events.APIGatewayProxyResponse, error) {
+func (app *application) handler(e createUserEvent) (events.APIGatewayProxyResponse, error) {
 	headers := map[string]string{"Content-Type": "application/json"}
 
-	err := createUser(e)
+	err := app.createUser(e)
 	if err != nil {
-		resp := lib.GenerateResponseBody(fmt.Sprintf("Error creating user %v", e.EmailAddress), 404, err, headers)
+		resp := util.GenerateResponseBody(fmt.Sprintf("Error creating user %v", e.EmailAddress), 404, err, headers)
 		return resp, nil
 	}
 
-	resp := lib.GenerateResponseBody(fmt.Sprintf("Created new user %v", e.EmailAddress), 200, nil, headers)
+	resp := util.GenerateResponseBody(fmt.Sprintf("Created new user %v", e.EmailAddress), 200, nil, headers)
 	return resp, nil
 }
 
 func main() {
-	lambda.Start(handler)
+	config := configuration{
+		UserPoolID: os.Getenv("USER_POOL_ID"),
+		idp:        cidp.New(session.Must(session.NewSession())),
+	}
+
+	app := application{config: config}
+
+	lambda.Start(app.handler)
 }

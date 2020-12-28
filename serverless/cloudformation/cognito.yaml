@@ -16,7 +16,7 @@ Resources:
           RequireNumbers: true
           RequireSymbols: true
           RequireUppercase: true
-          TemporaryPasswordValidityDays: 180
+          TemporaryPasswordValidityDays: 1
 
   CognitoUserPoolClient:
     Type: AWS::Cognito::UserPoolClient

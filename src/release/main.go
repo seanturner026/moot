@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/google/go-github/github"
-	lib "github.com/seanturner026/serverless-release-dashboard/lib"
+	util "github.com/seanturner026/serverless-release-dashboard/pkg/util"
 	"golang.org/x/oauth2"
 )
 
@@ -61,7 +61,7 @@ func createPullRequest(githubCtx context.Context, c *github.Client, r releaseEve
 
 	if pullRequestResponse.Mergeable != nil {
 		log.Printf("[ERROR] Pull request %v not mergeable, %v", r.GithubRepo, err)
-		lib.PostToSlack(os.Getenv("WEBHOOK_URL"), fmt.Sprintf(
+		util.PostToSlack(os.Getenv("WEBHOOK_URL"), fmt.Sprintf(
 			"Github pull request for %v version %v is un-mergeable, please fix merge conflicts and re-release.",
 			r.GithubRepo,
 			r.ReleaseVersion,
@@ -91,7 +91,7 @@ func mergePullRequest(githubCtx context.Context, c *github.Client, prNumber int,
 
 	if !*mergeResult.Merged {
 		log.Printf("[ERROR] %v pull request %v not merged", r.GithubRepo, prNumber)
-		lib.PostToSlack(os.Getenv("WEBHOOK_URL"), fmt.Sprintf(
+		util.PostToSlack(os.Getenv("WEBHOOK_URL"), fmt.Sprintf(
 			"API request to merge github pull request %v for %v version %v failed.",
 			prNumber,
 			r.GithubRepo,
@@ -122,7 +122,7 @@ func createRelease(githubCtx context.Context, c *github.Client, r releaseEvent) 
 
 	if err != nil || resp.Response.StatusCode != 200 {
 		log.Printf("[ERROR] Unable to create %v release version %v, %v", r.GithubRepo, r.ReleaseVersion, err)
-		lib.PostToSlack(os.Getenv("WEBHOOK_URL"), fmt.Sprintf(
+		util.PostToSlack(os.Getenv("WEBHOOK_URL"), fmt.Sprintf(
 			"Unable to create %v release version %v on Github.",
 			r.GithubRepo,
 			r.ReleaseVersion,
@@ -138,13 +138,13 @@ func handler(ctx context.Context, r releaseEvent) (events.APIGatewayProxyRespons
 	pr := createPullRequest(ctx, clientGithub, r)
 	mergePullRequest(ctx, clientGithub, *pr.Number, r)
 	createRelease(ctx, clientGithub, r)
-	lib.PostToSlack(os.Getenv("WEBHOOK_URL"), fmt.Sprintf(
+	util.PostToSlack(os.Getenv("WEBHOOK_URL"), fmt.Sprintf(
 		"Starting release for %v version %v...",
 		r.GithubRepo,
 		r.ReleaseVersion,
 	))
 
-	resp := lib.GenerateResponseBody(fmt.Sprintf("Released %v version %v successfully,", r.GithubRepo, r.ReleaseVersion), 200, nil, headers)
+	resp := util.GenerateResponseBody(fmt.Sprintf("Released %v version %v successfully,", r.GithubRepo, r.ReleaseVersion), 200, nil, headers)
 	return resp, nil
 }
 

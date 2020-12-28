@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
@@ -15,7 +14,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
-	lib "github.com/seanturner026/serverless-release-dashboard/lib"
+	cidpif "github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
+	util "github.com/seanturner026/serverless-release-dashboard/pkg/util"
 )
 
 type loginUserEvent struct {
@@ -23,21 +23,23 @@ type loginUserEvent struct {
 	Password     string `json:"password"`
 }
 
-type response events.APIGatewayProxyResponse
-
-var client *cidp.CognitoIdentityProvider
-
-func init() {
-	client = cidp.New(session.New())
+type application struct {
+	config configuration
 }
 
-func getUserPoolClientSecret() (string, error) {
+type configuration struct {
+	ClientPoolID string
+	UserPoolID   string
+	idp          cidpif.CognitoIdentityProviderAPI
+}
+
+func (app *application) getUserPoolClientSecret() (string, error) {
 	input := &cidp.DescribeUserPoolClientInput{
 		UserPoolId: aws.String(os.Getenv("USER_POOL_ID")),
 		ClientId:   aws.String(os.Getenv("CLIENT_POOL_ID")),
 	}
 
-	resp, err := client.DescribeUserPoolClient(input)
+	resp, err := app.config.idp.DescribeUserPoolClient(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
@@ -70,7 +72,7 @@ func generateSecretHash(e loginUserEvent, clientSecret string) string {
 	return base64.StdEncoding.EncodeToString(mac.Sum(nil))
 }
 
-func loginUser(e loginUserEvent, secretHash string) (string, string, bool, error) {
+func (app *application) loginUser(e loginUserEvent, secretHash string) (string, string, bool, error) {
 	input := &cidp.InitiateAuthInput{
 		AuthFlow: aws.String("USER_PASSWORD_AUTH"),
 		AuthParameters: map[string]*string{
@@ -81,7 +83,7 @@ func loginUser(e loginUserEvent, secretHash string) (string, string, bool, error
 		ClientId: aws.String(os.Getenv("CLIENT_POOL_ID")),
 	}
 
-	resp, err := client.InitiateAuth(input)
+	resp, err := app.config.idp.InitiateAuth(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
@@ -124,7 +126,7 @@ func loginUser(e loginUserEvent, secretHash string) (string, string, bool, error
 		return "", "", false, err
 	}
 
-	if resp.ChallengeName == aws.String("NEW_PASSWORD_REQUIRED") {
+	if *resp.ChallengeName == "NEW_PASSWORD_REQUIRED" {
 		log.Printf("[INFO] New password required for %v", e.EmailAddress)
 		return "", *resp.Session, true, nil
 	}
@@ -133,34 +135,42 @@ func loginUser(e loginUserEvent, secretHash string) (string, string, bool, error
 	return *resp.AuthenticationResult.AccessToken, "", false, nil
 }
 
-func handler(ctx context.Context, e loginUserEvent) (events.APIGatewayProxyResponse, error) {
+func (app *application) handler(e loginUserEvent) (events.APIGatewayProxyResponse, error) {
 	headers := map[string]string{"Content-Type": "application/json"}
 
-	clientSecret, err := getUserPoolClientSecret()
+	clientSecret, err := app.getUserPoolClientSecret()
 	if err != nil {
-		resp := lib.GenerateResponseBody("Error obtaining user pool client secret", 404, err, headers)
+		resp := util.GenerateResponseBody("Error obtaining user pool client secret", 404, err, headers)
 		return resp, nil
 	}
 
 	secretHash := generateSecretHash(e, clientSecret)
-	accessToken, session, resetPassword, err := loginUser(e, secretHash)
+	accessToken, session, resetPassword, err := app.loginUser(e, secretHash)
 	if err != nil {
-		resp := lib.GenerateResponseBody(fmt.Sprintf("Error logging user %v in", e.EmailAddress), 404, err, headers)
+		resp := util.GenerateResponseBody(fmt.Sprintf("Error logging user %v in", e.EmailAddress), 404, err, headers)
 		return resp, nil
 
 	} else if resetPassword {
 		headers["X-Session-Id"] = session
-		resp := lib.GenerateResponseBody(
+		resp := util.GenerateResponseBody(
 			fmt.Sprintf("User %v logged in successfully, password change required", e.EmailAddress), 200, err, headers,
 		)
 		return resp, nil
 	}
 
 	headers["Authorization"] = fmt.Sprintf("Bearer %v", accessToken)
-	resp := lib.GenerateResponseBody(fmt.Sprintf("User %v logged in successfully", e.EmailAddress), 200, err, headers)
+	resp := util.GenerateResponseBody(fmt.Sprintf("User %v logged in successfully", e.EmailAddress), 200, err, headers)
 	return resp, nil
 }
 
 func main() {
-	lambda.Start(handler)
+	config := configuration{
+		ClientPoolID: os.Getenv("CLIENT_POOL_ID"),
+		UserPoolID:   os.Getenv("USER_POOL_ID"),
+		idp:          cidp.New(session.Must(session.NewSession())),
+	}
+
+	app := application{config: config}
+
+	lambda.Start(app.handler)
 }

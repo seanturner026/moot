@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"log"
 	"os"
 	"strings"
@@ -12,23 +11,27 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
-	lib "github.com/seanturner026/serverless-release-dashboard/lib"
+	cidpif "github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
+	util "github.com/seanturner026/serverless-release-dashboard/pkg/util"
 )
 
-var client *cidp.CognitoIdentityProvider
-
-func init() {
-	client = cidp.New(session.New())
+type application struct {
+	config configuration
 }
 
-func listUsers() ([]string, error) {
+type configuration struct {
+	UserPoolID string
+	idp        cidpif.CognitoIdentityProviderAPI
+}
+
+func (app *application) listUsers() ([]string, error) {
 	input := &cidp.ListUsersInput{
 		AttributesToGet: aws.StringSlice([]string{"email"}),
 		Limit:           aws.Int64(60),
-		UserPoolId:      aws.String(os.Getenv("USER_POOL_ID")),
+		UserPoolId:      aws.String(app.config.UserPoolID),
 	}
 
-	resp, err := client.ListUsers(input)
+	resp, err := app.config.idp.ListUsers(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
@@ -65,19 +68,26 @@ func listUsers() ([]string, error) {
 	return userNames, nil
 }
 
-func handler(ctx context.Context, e interface{}) (events.APIGatewayProxyResponse, error) {
+func (app *application) handler() (events.APIGatewayProxyResponse, error) {
 	headers := map[string]string{"Content-Type": "application/json"}
 
-	userNames, err := listUsers()
+	userNames, err := app.listUsers()
 	if err != nil || len(userNames) == 0 {
-		resp := lib.GenerateResponseBody("Unable to populate list of users", 404, err, headers)
+		resp := util.GenerateResponseBody("Unable to populate list of users", 404, err, headers)
 		return resp, nil
 	}
 
-	resp := lib.GenerateResponseBody(strings.Join(userNames, ","), 200, err, headers)
+	resp := util.GenerateResponseBody(strings.Join(userNames, ","), 200, err, headers)
 	return resp, nil
 }
 
 func main() {
-	lambda.Start(handler)
+	config := configuration{
+		UserPoolID: os.Getenv("USER_POOL_ID"),
+		idp:        cidp.New(session.Must(session.NewSession())),
+	}
+
+	app := application{config: config}
+
+	lambda.Start(app.handler)
 }

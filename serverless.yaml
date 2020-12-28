@@ -45,3 +45,4 @@ functions:
 
 resources:
   - ${file(serverless/cloudformation/cognito.yaml)}
+  # - ${file(serverless/cloudformation/s3.yaml)}
