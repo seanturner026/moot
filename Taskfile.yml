@@ -1,0 +1,48 @@
+# version: "3"
+
+# tasks:
+#   test:
+#     silent: true
+#     cmds:
+#       - echo "Running tests..."
+#       - |
+#         set -e
+#         for DIR in src/*
+#         do
+#           go test ./$DIR
+#         done
+
+#   gomodgen:
+#     silent: true
+#     cmds:
+#       - chmod u+x gomod.sh
+#       - ./gomod.sh
+
+#   build:
+#     deps: [gomodgen, test]
+#     silent: true
+#     cmds:
+#       - echo "Building binaries..."
+#       - |
+#         set -e
+#         for DIR in src/*
+#         do
+#           FUNCTION=$(echo $DIR | cut -d / -f 2)
+#           go build -ldflags="-s -w" -o bin/$FUNCTION src/$FUNCTION/main.go
+#         done
+#     env:
+#       GO111MODULE: on
+#       GOOS: linux
+
+#   deploy:
+#     deps: [build]
+#     silent: true
+#     cmds:
+#       - echo "Deploying infrastructure..."
+#       - serverless deploy --verbose  --aws-profile sean
+
+#   destroy:
+#     silent: true
+#     cmds:
+#       - echo "Destroying infrastructure..."
+#       - serverless remove --verbose --aws-profile sean

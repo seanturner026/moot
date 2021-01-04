@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -30,121 +31,156 @@ var (
 
 // init authenicates with Github using the Github token provided environment variable
 func init() {
-	log.Println("[INFO] authenticating with github token...")
 	githubCtx = context.Background()
 	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")})
 	tc := oauth2.NewClient(githubCtx, ts)
 	clientGithub = github.NewClient(tc)
 }
 
-// createPullRequest generates a pull request on Github according to the ReleaseEvent. Any errors
-// will send a slack message and exits 0.
-func createPullRequest(githubCtx context.Context, c *github.Client, r releaseEvent) *github.PullRequest {
+// createPullRequest generates a pull request on Github according to the ReleaseEvent
+func createPullRequest(githubCtx context.Context, c *github.Client, e releaseEvent) (github.PullRequest, error) {
 	pullRequestInfo := &github.NewPullRequest{
-		Title: github.String(r.ReleaseVersion),
-		Head:  github.String(r.BranchHead),
-		Base:  github.String(r.BranchBase),
-		Body:  github.String(r.ReleaseBody),
+		Title: github.String(e.ReleaseVersion),
+		Head:  github.String(e.BranchHead),
+		Base:  github.String(e.BranchBase),
+		Body:  github.String(e.ReleaseBody),
 	}
 
-	log.Printf("[INFO] creating %v pull request...", r.GithubRepo)
-	pullRequestResponse, _, err := c.PullRequests.Create(
+	log.Printf("[INFO] creating %v pull request...", e.GithubRepo)
+	resp, _, err := c.PullRequests.Create(
 		githubCtx,
-		r.GithubOwner,
-		r.GithubRepo,
+		e.GithubOwner,
+		e.GithubRepo,
 		pullRequestInfo,
 	)
 
 	if err != nil {
-		log.Printf("[ERROR] unable to create %v pull request, %v", r.GithubRepo, err)
+		log.Printf("[ERROR] unable to create %v pull request, %v", e.GithubRepo, err)
+		return *resp, err
 	}
 
-	if pullRequestResponse.Mergeable != nil {
-		log.Printf("[ERROR] Pull request %v not mergeable, %v", r.GithubRepo, err)
-		util.PostToSlack(os.Getenv("WEBHOOK_URL"), fmt.Sprintf(
-			"Github pull request for %v version %v is un-mergeable, please fix merge conflicts and re-release.",
-			r.GithubRepo,
-			r.ReleaseVersion,
-		))
-		os.Exit(0)
-	}
-
-	return pullRequestResponse
+	return *resp, nil
 }
 
-// mergePullRequest merges the pull request created by createPullRequest. Any errors will send a
-// slack message and exits 0.
-func mergePullRequest(githubCtx context.Context, c *github.Client, prNumber int, r releaseEvent) {
+// mergePullRequest merges the pull request created by createPullRequest
+func mergePullRequest(githubCtx context.Context, c *github.Client, prNumber int, e releaseEvent) (github.PullRequestMergeResult, error) {
 	log.Printf("[INFO] merging pull request %v...", prNumber)
-	mergeResult, resp, err := c.PullRequests.Merge(
+	mergeResult, _, err := c.PullRequests.Merge(
 		githubCtx,
-		r.GithubOwner,
-		r.GithubRepo,
+		e.GithubOwner,
+		e.GithubRepo,
 		prNumber,
 		fmt.Sprintf("Merging pull request number %v", prNumber),
 		&github.PullRequestOptions{},
 	)
 
-	if err != nil || resp.Response.StatusCode != 200 {
-		log.Printf("[ERROR], unable to merge %v pull request %v, %v", r.GithubRepo, prNumber, err)
+	if err != nil {
+		log.Printf("[ERROR], unable to merge %v pull request %v, %v", e.GithubRepo, prNumber, err)
+		return *mergeResult, nil
 	}
-
-	if !*mergeResult.Merged {
-		log.Printf("[ERROR] %v pull request %v not merged", r.GithubRepo, prNumber)
-		util.PostToSlack(os.Getenv("WEBHOOK_URL"), fmt.Sprintf(
-			"API request to merge github pull request %v for %v version %v failed.",
-			prNumber,
-			r.GithubRepo,
-			r.ReleaseVersion,
-		))
-		os.Exit(0)
-	}
+	return *mergeResult, nil
 }
 
-// createRelease creates a release on Github according to the ReleaseEvent. Any errors will send a
-// slack message and exits 0
-func createRelease(githubCtx context.Context, c *github.Client, r releaseEvent) {
+// createRelease creates a release on Github according to the ReleaseEvent
+func createRelease(githubCtx context.Context, c *github.Client, e releaseEvent) error {
 	releaseInfo := &github.RepositoryRelease{
-		TargetCommitish: github.String(r.BranchBase),
-		TagName:         github.String(r.ReleaseVersion),
-		Name:            github.String(r.ReleaseVersion),
-		Body:            github.String(r.ReleaseVersion),
+		TargetCommitish: github.String(e.BranchBase),
+		TagName:         github.String(e.ReleaseVersion),
+		Name:            github.String(e.ReleaseVersion),
+		Body:            github.String(e.ReleaseBody),
 		Prerelease:      github.Bool(false),
 	}
 
-	log.Printf("[INFO] creating %v release version %v...", r.GithubRepo, r.ReleaseVersion)
-	_, resp, err := c.Repositories.CreateRelease(
+	log.Printf("[INFO] creating %v release version %v...", e.GithubRepo, e.ReleaseVersion)
+	_, _, err := c.Repositories.CreateRelease(
 		githubCtx,
-		r.GithubOwner,
-		r.GithubRepo,
+		e.GithubOwner,
+		e.GithubRepo,
 		releaseInfo,
 	)
 
-	if err != nil || resp.Response.StatusCode != 200 {
-		log.Printf("[ERROR] Unable to create %v release version %v, %v", r.GithubRepo, r.ReleaseVersion, err)
-		util.PostToSlack(os.Getenv("WEBHOOK_URL"), fmt.Sprintf(
-			"Unable to create %v release version %v on Github.",
-			r.GithubRepo,
-			r.ReleaseVersion,
-		))
-		os.Exit(0)
+	if err != nil {
+		log.Printf("[ERROR] Unable to create %v release version %v, %v", e.GithubRepo, e.ReleaseVersion, err)
+		return err
 	}
+	return nil
 }
 
 // handler executes the release and notification workflow
-func handler(ctx context.Context, r releaseEvent) (events.APIGatewayProxyResponse, error) {
+func handler(ctx context.Context, event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	headers := map[string]string{"Content-Type": "application/json"}
 
-	pr := createPullRequest(ctx, clientGithub, r)
-	mergePullRequest(ctx, clientGithub, *pr.Number, r)
-	createRelease(ctx, clientGithub, r)
+	e := releaseEvent{}
+	err := json.Unmarshal([]byte(event.Body), &e)
+	if err != nil {
+		log.Printf("[ERROR] %v", err)
+	}
+
+	prResp, err := createPullRequest(ctx, clientGithub, e)
+	if err != nil {
+		message := fmt.Sprintf(
+			"Could not create Github pull request for %v version %v, please check github for furhter details.",
+			e.GithubRepo,
+			e.ReleaseVersion,
+		)
+		resp := util.GenerateResponseBody(message, 404, err, headers)
+		return resp, nil
+	}
+
+	// if !*prResp.Mergeable {
+	// 	log.Printf("[ERROR] Pull request for %v version %v not mergeable", e.GithubRepo, *prResp.Number)
+	// 	message := fmt.Sprintf(
+	// 		"Github pull request for %v version %v is un-mergeable, please fix merge conflicts and re-release.",
+	// 		e.GithubRepo,
+	// 		e.ReleaseVersion,
+	// 	)
+	// 	resp := util.GenerateResponseBody(message, 404, nil, headers)
+	// 	return resp, nil
+	// }
+
+	mergeResp, err := mergePullRequest(ctx, clientGithub, *prResp.Number, e)
+	if err != nil {
+		message := fmt.Sprintf(
+			"API request to merge github pull request %v for %v version %v failed, please check the pull request on github for further details.",
+			*prResp.Number,
+			e.GithubRepo,
+			e.ReleaseVersion,
+		)
+		resp := util.GenerateResponseBody(message, 404, err, headers)
+		return resp, nil
+	}
+
+	if !*mergeResp.Merged {
+		log.Printf("[ERROR] %v pull request %v not merged", e.GithubRepo, *prResp.Number)
+		message := fmt.Sprintf(
+			"API request to merge github pull request %v for %v version %v failed, please check the pull request on github for further details.",
+			*prResp.Number,
+			e.GithubRepo,
+			e.ReleaseVersion,
+		)
+		resp := util.GenerateResponseBody(message, 404, err, headers)
+		return resp, nil
+	}
+
+	err = createRelease(ctx, clientGithub, e)
+	if err != nil {
+		message := fmt.Sprintf(
+			"Unable to create %v release version %v on Github.",
+			e.GithubRepo,
+			e.ReleaseVersion,
+		)
+		resp := util.GenerateResponseBody(message, 404, err, headers)
+		return resp, nil
+	}
+
 	util.PostToSlack(os.Getenv("WEBHOOK_URL"), fmt.Sprintf(
-		"Starting release for %v version %v...",
-		r.GithubRepo,
-		r.ReleaseVersion,
+		"Starting release for %v version %v...\n\n%v",
+		e.GithubRepo,
+		e.ReleaseVersion,
+		e.ReleaseBody,
 	))
 
-	resp := util.GenerateResponseBody(fmt.Sprintf("Released %v version %v successfully,", r.GithubRepo, r.ReleaseVersion), 200, nil, headers)
+	resp := util.GenerateResponseBody(fmt.Sprintf("Released %v version %v successfully,", e.GithubRepo, e.ReleaseVersion), 200, nil, headers)
 	return resp, nil
 }
 

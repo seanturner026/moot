@@ -1,6 +1,10 @@
 Release:
   handler: bin/release
   events:
+    - httpApi:
+        method: POST
+        path: /release
+
     # - http:
     #     path: /release
     #     method: get
@@ -8,7 +12,6 @@ Release:
     #     authorizer:
     #       name: verify-token
     #       identitySource: method.request.header.Authorization
-    #       resultTtlInSeconds: 3600
 
   timeout: 10
   environment:

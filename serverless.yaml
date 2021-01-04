@@ -13,6 +13,15 @@ provider:
     App: ${self:service}
     ManagedBy: serverless framework
 
+  httpApi:
+    cors:
+      allowedOrigins:
+        - https://release.fw
+        - http://localhost:8080
+      allowedHeaders:
+        - Content-Type
+        - Authorization
+
   apiGateway:
     shouldStartNameWithService: true
 

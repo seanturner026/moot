@@ -1,9 +1,6 @@
 package main
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/base64"
 	"fmt"
 	"log"
 	"os"
@@ -33,10 +30,17 @@ type configuration struct {
 	idp          cidpif.CognitoIdentityProviderAPI
 }
 
+type loginUserResponse struct {
+	AccessToken         string `json:"access_token,omitempty"`
+	NewPasswordRequired bool
+	SessionID           string `json:"session_id,omitempty"`
+	UserID              string `json:"user_id,omitempty"`
+}
+
 func (app *application) getUserPoolClientSecret() (string, error) {
 	input := &cidp.DescribeUserPoolClientInput{
-		UserPoolId: aws.String(os.Getenv("USER_POOL_ID")),
-		ClientId:   aws.String(os.Getenv("CLIENT_POOL_ID")),
+		UserPoolId: aws.String(app.config.UserPoolID),
+		ClientId:   aws.String(app.config.ClientPoolID),
 	}
 
 	resp, err := app.config.idp.DescribeUserPoolClient(input)
@@ -65,14 +69,7 @@ func (app *application) getUserPoolClientSecret() (string, error) {
 	return *resp.UserPoolClient.ClientSecret, nil
 }
 
-func generateSecretHash(e loginUserEvent, clientSecret string) string {
-	mac := hmac.New(sha256.New, []byte(clientSecret))
-	mac.Write([]byte(e.EmailAddress + os.Getenv("CLIENT_POOL_ID")))
-
-	return base64.StdEncoding.EncodeToString(mac.Sum(nil))
-}
-
-func (app *application) loginUser(e loginUserEvent, secretHash string) (string, string, bool, error) {
+func (app *application) loginUser(e loginUserEvent, secretHash string) (loginUserResponse, error) {
 	input := &cidp.InitiateAuthInput{
 		AuthFlow: aws.String("USER_PASSWORD_AUTH"),
 		AuthParameters: map[string]*string{
@@ -83,6 +80,7 @@ func (app *application) loginUser(e loginUserEvent, secretHash string) (string, 
 		ClientId: aws.String(os.Getenv("CLIENT_POOL_ID")),
 	}
 
+	loginUserResp := loginUserResponse{}
 	resp, err := app.config.idp.InitiateAuth(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
@@ -123,16 +121,22 @@ func (app *application) loginUser(e loginUserEvent, secretHash string) (string, 
 		} else {
 			log.Printf("[ERROR] %v", err.Error())
 		}
-		return "", "", false, err
+		loginUserResp.NewPasswordRequired = false
+		return loginUserResp, err
 	}
 
 	if *resp.ChallengeName == "NEW_PASSWORD_REQUIRED" {
 		log.Printf("[INFO] New password required for %v", e.EmailAddress)
-		return "", *resp.Session, true, nil
+		loginUserResp.NewPasswordRequired = true
+		loginUserResp.SessionID = *resp.Session
+		loginUserResp.UserID = *resp.ChallengeParameters["USER_ID_FOR_SRP"]
+		return loginUserResp, nil
 	}
 
 	log.Printf("[INFO] Authenticated user %v successfully", e.EmailAddress)
-	return *resp.AuthenticationResult.AccessToken, "", false, nil
+	loginUserResp.AccessToken = *resp.AuthenticationResult.AccessToken
+	loginUserResp.NewPasswordRequired = false
+	return loginUserResp, nil
 }
 
 func (app *application) handler(e loginUserEvent) (events.APIGatewayProxyResponse, error) {
@@ -144,21 +148,22 @@ func (app *application) handler(e loginUserEvent) (events.APIGatewayProxyRespons
 		return resp, nil
 	}
 
-	secretHash := generateSecretHash(e, clientSecret)
-	accessToken, session, resetPassword, err := app.loginUser(e, secretHash)
+	secretHash := util.GenerateSecretHash(clientSecret, e.EmailAddress, app.config.ClientPoolID)
+	loginUserResp, err := app.loginUser(e, secretHash)
 	if err != nil {
 		resp := util.GenerateResponseBody(fmt.Sprintf("Error logging user %v in", e.EmailAddress), 404, err, headers)
 		return resp, nil
 
-	} else if resetPassword {
-		headers["X-Session-Id"] = session
+	} else if loginUserResp.NewPasswordRequired {
+		headers["X-Session-Id"] = loginUserResp.SessionID
+		headers["X-User-Id"] = loginUserResp.UserID
 		resp := util.GenerateResponseBody(
 			fmt.Sprintf("User %v logged in successfully, password change required", e.EmailAddress), 200, err, headers,
 		)
 		return resp, nil
 	}
 
-	headers["Authorization"] = fmt.Sprintf("Bearer %v", accessToken)
+	headers["Authorization"] = fmt.Sprintf("Bearer %v", loginUserResp.AccessToken)
 	resp := util.GenerateResponseBody(fmt.Sprintf("User %v logged in successfully", e.EmailAddress), 200, err, headers)
 	return resp, nil
 }
