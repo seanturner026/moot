@@ -1,9 +1,10 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"log"
 	"os"
-	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -24,7 +25,19 @@ type configuration struct {
 	idp        cidpif.CognitoIdentityProviderAPI
 }
 
-func (app *application) listUsers() ([]string, error) {
+type listUsersResponse struct {
+	Users []userName
+}
+
+type userName struct {
+	Name string `json:"name"`
+}
+
+func (userNames *listUsersResponse) appendUserToResponse(user userName) {
+	userNames.Users = append(userNames.Users, user)
+}
+
+func (app *application) listUsers() (listUsersResponse, error) {
 	input := &cidp.ListUsersInput{
 		AttributesToGet: aws.StringSlice([]string{"email"}),
 		Limit:           aws.Int64(60),
@@ -34,50 +47,47 @@ func (app *application) listUsers() ([]string, error) {
 	resp, err := app.config.idp.ListUsers(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case cidp.ErrCodeInvalidParameterException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeInvalidParameterException, aerr.Error())
-			case cidp.ErrCodeResourceNotFoundException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeResourceNotFoundException, aerr.Error())
-			case cidp.ErrCodeTooManyRequestsException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeTooManyRequestsException, aerr.Error())
-			case cidp.ErrCodeNotAuthorizedException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeNotAuthorizedException, aerr.Error())
-			case cidp.ErrCodeInternalErrorException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeInternalErrorException, aerr.Error())
-			default:
-				log.Printf("[ERROR] %v", err.Error())
-			}
+			log.Printf("[ERROR] %v", aerr.Error())
 		} else {
 			log.Printf("[ERROR] %v", err.Error())
 		}
-		return []string{}, err
+		return listUsersResponse{}, err
 	}
 
 	// NOTE(SMT): reflect []*cidp.UserType to stringslice?
 	users := resp.Users
-	userNames := make([]string, len(users))
-	for i, user := range users {
-		if i == 0 {
-			userNames[i] = *user.Attributes[0].Value
-		} else {
-			userNames = append(userNames, *user.Attributes[0].Value)
-		}
+	userNames := &listUsersResponse{}
+	for _, user := range users {
+		userName := userName{Name: *user.Attributes[0].Value}
+		userNames.appendUserToResponse(userName)
 	}
-
-	return userNames, nil
+	return *userNames, nil
 }
 
 func (app *application) handler() (events.APIGatewayProxyResponse, error) {
 	headers := map[string]string{"Content-Type": "application/json"}
 
 	userNames, err := app.listUsers()
-	if err != nil || len(userNames) == 0 {
+	if err != nil || len(userNames.Users) == 0 {
 		resp := util.GenerateResponseBody("Unable to populate list of users", 404, err, headers)
 		return resp, nil
 	}
 
-	resp := util.GenerateResponseBody(strings.Join(userNames, ","), 200, err, headers)
+	body, marshalErr := json.Marshal(userNames.Users)
+	statusCode := 200
+	if marshalErr != nil {
+		log.Printf("[ERROR] Unable to marshal json for response, %v", marshalErr)
+		statusCode = 404
+	}
+
+	var buf bytes.Buffer
+	json.HTMLEscape(&buf, body)
+	resp := events.APIGatewayProxyResponse{
+		StatusCode:      statusCode,
+		Headers:         headers,
+		Body:            buf.String(),
+		IsBase64Encoded: false,
+	}
 	return resp, nil
 }
 

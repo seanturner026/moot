@@ -13,6 +13,9 @@ provider:
     App: ${self:service}
     ManagedBy: serverless framework
 
+  apiGateway:
+    shouldStartNameWithService: true
+
   httpApi:
     cors:
       allowedOrigins:
@@ -22,19 +25,29 @@ provider:
         - Content-Type
         - Authorization
 
-  apiGateway:
-    shouldStartNameWithService: true
-
   iamRoleStatements:
     - Effect: Allow
       Action:
         - cognito-idp:AdminCreateUser
         - cognito-idp:AdminDeleteUser
+        - cognito-idp:AdminRespondToAuthChallenge
         - cognito-idp:DescribeUserPoolClient
         - cognito-idp:InitiateAuth
         - cognito-idp:ListUsers
       Resource:
         - !GetAtt CognitoUserPool.Arn
+    - Effect: Allow
+      Action:
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:Query
+        - dynamodb:UpdateItem
+      Resource:
+        - !GetAtt DynamoDBTable.Arn
+        - !Join
+          - ""
+          - - !GetAtt DynamoDBTable.Arn
+            - /index/repo
 
 custom: ${file(.env.${self:provider.stage}.yaml)}
 
@@ -45,8 +58,10 @@ package:
     - ./bin/**
 
 functions:
+  - ${file(serverless/functions/create_repo.yaml)}
   - ${file(serverless/functions/create_user.yaml)}
   - ${file(serverless/functions/delete_user.yaml)}
+  - ${file(serverless/functions/list_repos.yaml)}
   - ${file(serverless/functions/list_users.yaml)}
   - ${file(serverless/functions/login_user.yaml)}
   - ${file(serverless/functions/release.yaml)}
@@ -54,4 +69,5 @@ functions:
 
 resources:
   - ${file(serverless/cloudformation/cognito.yaml)}
+  - ${file(serverless/cloudformation/dynamodb.yaml)}
   # - ${file(serverless/cloudformation/s3.yaml)}

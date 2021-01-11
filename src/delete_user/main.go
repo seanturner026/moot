@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -36,22 +37,7 @@ func (app *application) deleteUser(e deleteUserEvent) error {
 	_, err := app.config.idp.AdminDeleteUser(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case cidp.ErrCodeResourceNotFoundException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeResourceNotFoundException, aerr.Error())
-			case cidp.ErrCodeInvalidParameterException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeInvalidParameterException, aerr.Error())
-			case cidp.ErrCodeTooManyRequestsException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeTooManyRequestsException, aerr.Error())
-			case cidp.ErrCodeNotAuthorizedException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeNotAuthorizedException, aerr.Error())
-			case cidp.ErrCodeUserNotFoundException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeUserNotFoundException, aerr.Error())
-			case cidp.ErrCodeInternalErrorException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeInternalErrorException, aerr.Error())
-			default:
-				log.Printf("[ERROR] %v", err.Error())
-			}
+			log.Printf("[ERROR] %v", aerr.Error())
 		} else {
 			log.Printf("[ERROR] %v", err.Error())
 		}
@@ -61,10 +47,16 @@ func (app *application) deleteUser(e deleteUserEvent) error {
 	return nil
 }
 
-func (app *application) handler(e deleteUserEvent) (events.APIGatewayProxyResponse, error) {
+func (app *application) handler(event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	headers := map[string]string{"Content-Type": "application/json"}
 
-	err := app.deleteUser(e)
+	e := deleteUserEvent{}
+	err := json.Unmarshal([]byte(event.Body), &e)
+	if err != nil {
+		log.Printf("[ERROR] %v", err)
+	}
+
+	err = app.deleteUser(e)
 	if err != nil {
 		resp := util.GenerateResponseBody(fmt.Sprintf("Error deleting user %v", e.EmailAddress), 404, err, headers)
 		return resp, nil

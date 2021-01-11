@@ -1,0 +1,5 @@
+CreateRepo:
+  handler: bin/create_repo
+  maximumRetryAttempts: 0
+  environment:
+    TABLE_NAME: ${self:service}-${self:provider.stage}

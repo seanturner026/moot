@@ -18,8 +18,8 @@ import (
 type releaseEvent struct {
 	GithubOwner    string `json:"github_owner"`
 	GithubRepo     string `json:"github_repo"`
-	BranchHead     string `json:"branch_head"`
 	BranchBase     string `json:"branch_base"`
+	BranchHead     string `json:"branch_head"`
 	ReleaseBody    string `json:"release_body"`
 	ReleaseVersion string `json:"release_version"`
 }
@@ -41,8 +41,8 @@ func init() {
 func createPullRequest(githubCtx context.Context, c *github.Client, e releaseEvent) (github.PullRequest, error) {
 	pullRequestInfo := &github.NewPullRequest{
 		Title: github.String(e.ReleaseVersion),
-		Head:  github.String(e.BranchHead),
 		Base:  github.String(e.BranchBase),
+		Head:  github.String(e.BranchHead),
 		Body:  github.String(e.ReleaseBody),
 	}
 
@@ -76,7 +76,7 @@ func mergePullRequest(githubCtx context.Context, c *github.Client, prNumber int,
 
 	if err != nil {
 		log.Printf("[ERROR], unable to merge %v pull request %v, %v", e.GithubRepo, prNumber, err)
-		return *mergeResult, nil
+		return *mergeResult, err
 	}
 	return *mergeResult, nil
 }
@@ -107,7 +107,7 @@ func createRelease(githubCtx context.Context, c *github.Client, e releaseEvent) 
 }
 
 // handler executes the release and notification workflow
-func handler(ctx context.Context, event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func handler(event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	headers := map[string]string{"Content-Type": "application/json"}
 
 	e := releaseEvent{}
@@ -116,7 +116,7 @@ func handler(ctx context.Context, event events.APIGatewayProxyRequest) (events.A
 		log.Printf("[ERROR] %v", err)
 	}
 
-	prResp, err := createPullRequest(ctx, clientGithub, e)
+	prResp, err := createPullRequest(githubCtx, clientGithub, e)
 	if err != nil {
 		message := fmt.Sprintf(
 			"Could not create Github pull request for %v version %v, please check github for furhter details.",
@@ -127,18 +127,7 @@ func handler(ctx context.Context, event events.APIGatewayProxyRequest) (events.A
 		return resp, nil
 	}
 
-	// if !*prResp.Mergeable {
-	// 	log.Printf("[ERROR] Pull request for %v version %v not mergeable", e.GithubRepo, *prResp.Number)
-	// 	message := fmt.Sprintf(
-	// 		"Github pull request for %v version %v is un-mergeable, please fix merge conflicts and re-release.",
-	// 		e.GithubRepo,
-	// 		e.ReleaseVersion,
-	// 	)
-	// 	resp := util.GenerateResponseBody(message, 404, nil, headers)
-	// 	return resp, nil
-	// }
-
-	mergeResp, err := mergePullRequest(ctx, clientGithub, *prResp.Number, e)
+	mergeResp, err := mergePullRequest(githubCtx, clientGithub, *prResp.Number, e)
 	if err != nil {
 		message := fmt.Sprintf(
 			"API request to merge github pull request %v for %v version %v failed, please check the pull request on github for further details.",
@@ -162,7 +151,7 @@ func handler(ctx context.Context, event events.APIGatewayProxyRequest) (events.A
 		return resp, nil
 	}
 
-	err = createRelease(ctx, clientGithub, e)
+	err = createRelease(githubCtx, clientGithub, e)
 	if err != nil {
 		message := fmt.Sprintf(
 			"Unable to create %v release version %v on Github.",

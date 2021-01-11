@@ -46,20 +46,7 @@ func (app *application) getUserPoolClientSecret() (string, error) {
 	resp, err := app.config.idp.DescribeUserPoolClient(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case cidp.ErrCodeResourceNotFoundException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeResourceNotFoundException, aerr.Error())
-			case cidp.ErrCodeInvalidParameterException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeInvalidParameterException, aerr.Error())
-			case cidp.ErrCodeTooManyRequestsException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeTooManyRequestsException, aerr.Error())
-			case cidp.ErrCodeNotAuthorizedException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeNotAuthorizedException, aerr.Error())
-			case cidp.ErrCodeInternalErrorException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeInternalErrorException, aerr.Error())
-			default:
-				log.Printf("[ERROR] %v", err.Error())
-			}
+			log.Printf("[ERROR] %v", aerr.Error())
 		} else {
 			log.Printf("[ERROR] %v", err.Error())
 		}
@@ -77,47 +64,14 @@ func (app *application) loginUser(e loginUserEvent, secretHash string) (loginUse
 			"PASSWORD":    aws.String(e.Password),
 			"SECRET_HASH": aws.String(secretHash),
 		},
-		ClientId: aws.String(os.Getenv("CLIENT_POOL_ID")),
+		ClientId: aws.String(app.config.ClientPoolID),
 	}
 
 	loginUserResp := loginUserResponse{}
 	resp, err := app.config.idp.InitiateAuth(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case cidp.ErrCodeResourceNotFoundException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeResourceNotFoundException, aerr.Error())
-			case cidp.ErrCodeInvalidParameterException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeInvalidParameterException, aerr.Error())
-			case cidp.ErrCodeNotAuthorizedException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeNotAuthorizedException, aerr.Error())
-			case cidp.ErrCodeTooManyRequestsException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeTooManyRequestsException, aerr.Error())
-			case cidp.ErrCodeInternalErrorException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeInternalErrorException, aerr.Error())
-			case cidp.ErrCodeUnexpectedLambdaException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeUnexpectedLambdaException, aerr.Error())
-			case cidp.ErrCodeInvalidUserPoolConfigurationException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeInvalidUserPoolConfigurationException, aerr.Error())
-			case cidp.ErrCodeUserLambdaValidationException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeUserLambdaValidationException, aerr.Error())
-			case cidp.ErrCodeInvalidLambdaResponseException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeInvalidLambdaResponseException, aerr.Error())
-			case cidp.ErrCodeMFAMethodNotFoundException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeMFAMethodNotFoundException, aerr.Error())
-			case cidp.ErrCodeInvalidSmsRoleAccessPolicyException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeInvalidSmsRoleAccessPolicyException, aerr.Error())
-			case cidp.ErrCodeInvalidSmsRoleTrustRelationshipException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeInvalidSmsRoleTrustRelationshipException, aerr.Error())
-			case cidp.ErrCodePasswordResetRequiredException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodePasswordResetRequiredException, aerr.Error())
-			case cidp.ErrCodeUserNotFoundException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeUserNotFoundException, aerr.Error())
-			case cidp.ErrCodeUserNotConfirmedException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeUserNotConfirmedException, aerr.Error())
-			default:
-				log.Printf("[ERROR] %v", err.Error())
-			}
+			log.Printf("[ERROR] %v", aerr.Error())
 		} else {
 			log.Printf("[ERROR] %v", err.Error())
 		}

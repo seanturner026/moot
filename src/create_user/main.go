@@ -44,42 +44,7 @@ func (app *application) createUser(e createUserEvent) error {
 	_, err := app.config.idp.AdminCreateUser(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case cidp.ErrCodeResourceNotFoundException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeResourceNotFoundException, aerr.Error())
-			case cidp.ErrCodeInvalidParameterException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeInvalidParameterException, aerr.Error())
-			case cidp.ErrCodeUserNotFoundException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeUserNotFoundException, aerr.Error())
-			case cidp.ErrCodeUsernameExistsException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeUsernameExistsException, aerr.Error())
-			case cidp.ErrCodeInvalidPasswordException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeInvalidPasswordException, aerr.Error())
-			case cidp.ErrCodeCodeDeliveryFailureException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeCodeDeliveryFailureException, aerr.Error())
-			case cidp.ErrCodeUnexpectedLambdaException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeUnexpectedLambdaException, aerr.Error())
-			case cidp.ErrCodeUserLambdaValidationException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeUserLambdaValidationException, aerr.Error())
-			case cidp.ErrCodeInvalidLambdaResponseException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeInvalidLambdaResponseException, aerr.Error())
-			case cidp.ErrCodePreconditionNotMetException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodePreconditionNotMetException, aerr.Error())
-			case cidp.ErrCodeInvalidSmsRoleAccessPolicyException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeInvalidSmsRoleAccessPolicyException, aerr.Error())
-			case cidp.ErrCodeInvalidSmsRoleTrustRelationshipException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeInvalidSmsRoleTrustRelationshipException, aerr.Error())
-			case cidp.ErrCodeTooManyRequestsException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeTooManyRequestsException, aerr.Error())
-			case cidp.ErrCodeNotAuthorizedException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeNotAuthorizedException, aerr.Error())
-			case cidp.ErrCodeUnsupportedUserStateException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeUnsupportedUserStateException, aerr.Error())
-			case cidp.ErrCodeInternalErrorException:
-				log.Printf("[ERROR] %v, %v", cidp.ErrCodeInternalErrorException, aerr.Error())
-			default:
-				log.Printf("[ERROR] %v", err.Error())
-			}
+			log.Printf("[ERROR] %v", aerr.Error())
 		} else {
 			log.Printf("[ERROR] %v", err.Error())
 		}

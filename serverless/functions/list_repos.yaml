@@ -1,0 +1,6 @@
+ListRepos:
+  handler: bin/list_repos
+  maximumRetryAttempts: 0
+  environment:
+    GLOBAL_SECONDARY_INDEX_NAME: repo
+    TABLE_NAME: ${self:service}-${self:provider.stage}

@@ -1,6 +1,9 @@
 ListUsers:
   handler: bin/list_users
   events:
+    - httpApi:
+        method: GET
+        path: /list/users
   maximumRetryAttempts: 0
   environment:
     USER_POOL_ID: !Ref CognitoUserPool

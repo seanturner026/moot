@@ -1,6 +1,9 @@
 DeleteUser:
   handler: bin/delete_user
   events:
+    - httpApi:
+        method: POST
+        path: /delete/user
   maximumRetryAttempts: 0
   environment:
     USER_POOL_ID: !Ref CognitoUserPool
