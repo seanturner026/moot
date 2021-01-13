@@ -1,9 +1,10 @@
 CreateUser:
   handler: bin/create_user
   events:
-    # - http:
-    #     path: create_user
-    #     method: post
+    - httpApi:
+        path: /create/user
+        method: post
+        authorizer: cognitoAuthorizer
   maximumRetryAttempts: 0
   environment:
     REGION: ${self:provider.region}

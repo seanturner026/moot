@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -93,8 +94,14 @@ func (app *application) loginUser(e loginUserEvent, secretHash string) (loginUse
 	return loginUserResp, nil
 }
 
-func (app *application) handler(e loginUserEvent) (events.APIGatewayProxyResponse, error) {
+func (app *application) handler(event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	headers := map[string]string{"Content-Type": "application/json"}
+
+	e := loginUserEvent{}
+	err := json.Unmarshal([]byte(event.Body), &e)
+	if err != nil {
+		log.Printf("[ERROR] %v", err)
+	}
 
 	clientSecret, err := app.getUserPoolClientSecret()
 	if err != nil {
@@ -110,7 +117,6 @@ func (app *application) handler(e loginUserEvent) (events.APIGatewayProxyRespons
 
 	} else if loginUserResp.NewPasswordRequired {
 		headers["X-Session-Id"] = loginUserResp.SessionID
-		headers["X-User-Id"] = loginUserResp.UserID
 		resp := util.GenerateResponseBody(
 			fmt.Sprintf("User %v logged in successfully, password change required", e.EmailAddress), 200, err, headers,
 		)

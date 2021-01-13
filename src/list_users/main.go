@@ -54,7 +54,6 @@ func (app *application) listUsers() (listUsersResponse, error) {
 		return listUsersResponse{}, err
 	}
 
-	// NOTE(SMT): reflect []*cidp.UserType to stringslice?
 	users := resp.Users
 	userNames := &listUsersResponse{}
 	for _, user := range users {
@@ -73,10 +72,10 @@ func (app *application) handler() (events.APIGatewayProxyResponse, error) {
 		return resp, nil
 	}
 
-	body, marshalErr := json.Marshal(userNames.Users)
+	body, err := json.Marshal(userNames.Users)
 	statusCode := 200
-	if marshalErr != nil {
-		log.Printf("[ERROR] Unable to marshal json for response, %v", marshalErr)
+	if err != nil {
+		log.Printf("[ERROR] Unable to marshal json for response, %v", err)
 		statusCode = 404
 	}
 

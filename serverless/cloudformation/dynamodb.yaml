@@ -24,9 +24,6 @@ Resources:
             - AttributeName: repo_owner
               KeyType: RANGE
           Projection:
-            NonKeyAttributes:
-              - branch_base
-              - branch_head
             ProjectionType: ALL
       # ProvisionedThroughput:
       #   ReadCapacityUnits: 1

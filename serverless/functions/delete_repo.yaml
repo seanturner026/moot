@@ -1,10 +1,10 @@
-DeleteUser:
-  handler: bin/delete_user
+DeleteRepo:
+  handler: bin/delete_repo
   events:
     - httpApi:
-        path: /delete/user
+        path: /delete/repo
         method: post
         authorizer: cognitoAuthorizer
   maximumRetryAttempts: 0
   environment:
-    USER_POOL_ID: !Ref CognitoUserPool
+    TABLE_NAME: ${self:service}-${self:provider.stage}

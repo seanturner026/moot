@@ -19,7 +19,7 @@ type resetPasswordEvent struct {
 	EmailAddress string `json:"email_address"`
 	NewPassword  string `json:"new_password"`
 	SessionID    string `json:"session_id"`
-	UserID       string `json:"user_id"`
+	// UserID       string `json:"user_id"`
 }
 
 type application struct {
@@ -55,16 +55,14 @@ func (app *application) resetPassword(e resetPasswordEvent, secretHash string) (
 	input := &cidp.AdminRespondToAuthChallengeInput{
 		ChallengeName: aws.String("NEW_PASSWORD_REQUIRED"),
 		ChallengeResponses: map[string]*string{
-			"USERNAME":     aws.String(e.UserID),
+			"USERNAME":     aws.String(e.EmailAddress),
 			"NEW_PASSWORD": aws.String(e.NewPassword),
 			"SECRET_HASH":  aws.String(secretHash),
 		},
 		ClientId:   aws.String(app.config.ClientPoolID),
-		Session:    aws.String(e.SessionID),
 		UserPoolId: aws.String(app.config.UserPoolID),
+		Session:    aws.String(e.SessionID),
 	}
-
-	log.Printf("[DEBUG] secret hash %v", secretHash)
 
 	resp, err := app.config.idp.AdminRespondToAuthChallenge(input)
 	if err != nil {

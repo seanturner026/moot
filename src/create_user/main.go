@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -54,10 +55,16 @@ func (app *application) createUser(e createUserEvent) error {
 	return nil
 }
 
-func (app *application) handler(e createUserEvent) (events.APIGatewayProxyResponse, error) {
+func (app *application) handler(event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	headers := map[string]string{"Content-Type": "application/json"}
 
-	err := app.createUser(e)
+	e := createUserEvent{}
+	err := json.Unmarshal([]byte(event.Body), &e)
+	if err != nil {
+		log.Printf("[ERROR] %v", err)
+	}
+
+	err = app.createUser(e)
 	if err != nil {
 		resp := util.GenerateResponseBody(fmt.Sprintf("Error creating user %v", e.EmailAddress), 404, err, headers)
 		return resp, nil

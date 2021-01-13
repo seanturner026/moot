@@ -29,7 +29,7 @@ func (m mockPutItem) PutItem(*dynamodb.PutItemInput) (*dynamodb.PutItemOutput, e
 func TestGeneratePutItemInupt(t *testing.T) {
 	t.Run("Successfully marshalled json for DynamoDB", func(t *testing.T) {
 		event := createRepoEvent{
-			PK:         "test",
+			RepoName:   "test",
 			RepoOwner:  "test",
 			BranchHead: "test",
 			BranchBase: "test",
@@ -42,7 +42,7 @@ func TestGeneratePutItemInupt(t *testing.T) {
 	})
 }
 
-func TestDeleteUser(t *testing.T) {
+func TestWriteRepoToDB(t *testing.T) {
 	t.Run("Successfully create repo in DynamoDB", func(t *testing.T) {
 		dbMock := mockPutItem{
 			Response: &dynamodb.PutItemOutput{},
@@ -55,7 +55,7 @@ func TestDeleteUser(t *testing.T) {
 		}}
 
 		event := createRepoEvent{
-			PK:         "test",
+			RepoName:   "test",
 			RepoOwner:  "test",
 			BranchHead: "test",
 			BranchBase: "test",

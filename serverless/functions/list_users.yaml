@@ -4,6 +4,7 @@ ListUsers:
     - httpApi:
         method: GET
         path: /list/users
+        authorizer: cognitoAuthorizer
   maximumRetryAttempts: 0
   environment:
     USER_POOL_ID: !Ref CognitoUserPool

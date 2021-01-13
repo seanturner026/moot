@@ -1,5 +1,10 @@
 ListRepos:
   handler: bin/list_repos
+  events:
+    - httpApi:
+        path: /list/repos
+        method: get
+        authorizer: cognitoAuthorizer
   maximumRetryAttempts: 0
   environment:
     GLOBAL_SECONDARY_INDEX_NAME: repo

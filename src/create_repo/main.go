@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -17,11 +18,11 @@ import (
 )
 
 type createRepoEvent struct {
-	PK         string `json:"pk"` // RepoName
-	SK         string `json:"sk"` // repo
-	RepoOwner  string `json:"repo_owner"`
-	BranchBase string `json:"branch_base"`
-	BranchHead string `json:"branch_head"`
+	RepoOwner  string `dynamodbav:"repo_owner" json:"repo_owner"`
+	RepoName   string `dynamodbav:"pk" json:"repo_name"`
+	Type       string `dynamodbav:"sk"`
+	BranchBase string `dynamodbav:"branch_base" json:"branch_base"`
+	BranchHead string `dynamodbav:"branch_head" json:"branch_head"`
 }
 
 type application struct {
@@ -34,7 +35,7 @@ type configuration struct {
 }
 
 func generatePutItemInput(e createRepoEvent) (createRepoEvent, map[string]*dynamodb.AttributeValue, error) {
-	e.SK = "repo"
+	e.Type = "repo"
 	itemInput, err := dynamodbattribute.MarshalMap(e)
 	if err != nil {
 		return e, map[string]*dynamodb.AttributeValue{}, err
@@ -57,33 +58,33 @@ func (app *application) writeRepoToDB(e createRepoEvent, itemInput map[string]*d
 		}
 		return err
 	}
-	log.Printf("[INFO] Wrote ID %s successfully", e.PK)
+	log.Printf("[INFO] Wrote ID %s successfully", e.RepoName)
 	return nil
 }
 
-// event events.APIGatewayProxyRequest
-func (app *application) handler(e createRepoEvent) (events.APIGatewayProxyResponse, error) {
+func (app *application) handler(event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	headers := map[string]string{"Content-Type": "application/json"}
-	// e := createRepoEvent{}
-	// err := json.Unmarshal([]byte(event.Body), &e)
-	// if err != nil {
-	// 	log.Printf("[ERROR] %v", err)
-	// }
+
+	e := createRepoEvent{}
+	err := json.Unmarshal([]byte(event.Body), &e)
+	if err != nil {
+		log.Printf("[ERROR] %v", err)
+	}
 
 	e, itemInput, err := generatePutItemInput(e)
 	if err != nil {
-		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to stage provided information for loading into DynamoDB for ID %v, %v", e.PK, err), 404, err, headers)
+		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to stage provided information for loading into DynamoDB for ID %v, %v", e.RepoName, err), 404, err, headers)
 		return resp, nil
 	}
 	log.Printf("[DEBUG] event %v", e)
 	log.Printf("[DEBUG] input %v", itemInput)
 	err = app.writeRepoToDB(e, itemInput)
 	if err != nil {
-		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to write record %v to DynamoDB table, %v", e.PK, err), 404, err, headers)
+		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to write record %v to DynamoDB table, %v", e.RepoName, err), 404, err, headers)
 		return resp, nil
 	}
 
-	resp := util.GenerateResponseBody(fmt.Sprintf("Wrote record %v to DynamoDB successfully", e.PK), 200, nil, headers)
+	resp := util.GenerateResponseBody(fmt.Sprintf("Wrote record %v to DynamoDB successfully", e.RepoName), 200, nil, headers)
 	return resp, nil
 }
 

@@ -2,17 +2,9 @@ Release:
   handler: bin/release
   events:
     - httpApi:
-        method: POST
         path: /release
-
-    # - http:
-    #     path: /release
-    #     method: get
-    #     cors: true
-    #     authorizer:
-    #       name: verify-token
-    #       identitySource: method.request.header.Authorization
-
+        method: post
+        authorizer: cognitoAuthorizer
   timeout: 10
   environment:
     GITHUB_TOKEN: ${self:custom.GITHUB_TOKEN}

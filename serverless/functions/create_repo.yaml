@@ -1,5 +1,10 @@
 CreateRepo:
   handler: bin/create_repo
+  events:
+    - httpApi:
+        path: /create/repo
+        method: post
+        authorizer: cognitoAuthorizer
   maximumRetryAttempts: 0
   environment:
     TABLE_NAME: ${self:service}-${self:provider.stage}

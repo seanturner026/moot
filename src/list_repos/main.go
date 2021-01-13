@@ -23,10 +23,10 @@ type listReposEvent struct {
 }
 
 type reposList struct {
-	RepoOwner  string `json:"repo_owner"`
-	RepoName   string `json:"repo_name"`
-	BranchBase string `json:"branch_base"`
-	BranchHead string `json:"branch_head"`
+	RepoOwner  string `dynamodbav:"repo_owner" json:"repo_owner"`
+	RepoName   string `dynamodbav:"pk" json:"repo_name"`
+	BranchBase string `dynamodbav:"branch_base" json:"branch_base"`
+	BranchHead string `dynamodbav:"branch_head" json:"branch_head"`
 }
 
 type application struct {
@@ -42,15 +42,15 @@ type configuration struct {
 func (app *application) listRepos(e listReposEvent) (dynamodb.QueryOutput, error) {
 	input := &dynamodb.QueryInput{
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":repo": {
+			":type": {
 				S: aws.String("repo"),
 			},
-			":github_owner": {
+			":repo_owner": {
 				S: aws.String(e.RepoOwner),
 			},
 		},
 		IndexName:              aws.String(app.config.GlobalSecondaryIndexName),
-		KeyConditionExpression: aws.String("sk = :repo AND repo_owner = :github_owner"),
+		KeyConditionExpression: aws.String("sk = :type AND repo_owner = :repo_owner"),
 		Select:                 aws.String("ALL_ATTRIBUTES"),
 		TableName:              aws.String(app.config.TableName),
 	}
@@ -68,24 +68,32 @@ func (app *application) listRepos(e listReposEvent) (dynamodb.QueryOutput, error
 	return *resp, err
 }
 
-// event events.APIGatewayProxyRequest
-func (app *application) handler(e listReposEvent) (events.APIGatewayProxyResponse, error) {
+func (app *application) handler(event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	headers := map[string]string{"Content-Type": "application/json"}
+
+	e := listReposEvent{}
+	err := json.Unmarshal([]byte(event.Body), &e)
+	if err != nil {
+		log.Printf("[ERROR] %v", err)
+	}
 
 	output, err := app.listRepos(e)
 	if err != nil {
 		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to query repos belonging to %v, %v", e.RepoOwner, err), 404, err, headers)
 		return resp, nil
 	}
-	log.Printf("[DEBUG] output %v", output)
 
-	reposList := reposList{}
-	dynamodbattribute.UnmarshalListOfMaps(output.Items, &reposList)
+	reposList := []reposList{}
+	err = dynamodbattribute.UnmarshalListOfMaps(output.Items, &reposList)
+	if err != nil {
+		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to unmarshal DynamoDB resp, %v", err), 404, err, headers)
+		return resp, nil
+	}
 
-	body, marshalErr := json.Marshal(reposList)
+	body, err := json.Marshal(reposList)
 	statusCode := 200
-	if marshalErr != nil {
-		log.Printf("[ERROR] Unable to marshal json for response, %v", marshalErr)
+	if err != nil {
+		log.Printf("[ERROR] Unable to marshal json for response, %v", err)
 		statusCode = 404
 	}
 

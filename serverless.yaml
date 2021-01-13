@@ -24,6 +24,18 @@ provider:
       allowedHeaders:
         - Content-Type
         - Authorization
+    authorizers:
+      cognitoAuthorizer:
+        identitySource: $request.header.Authorization
+        issuerUrl:
+          Fn::Join:
+            - ""
+            - - "https://cognito-idp."
+              - "${opt:region, self:provider.region}"
+              - ".amazonaws.com/"
+              - Ref: CognitoUserPool
+        audience:
+          - Ref: CognitoUserPoolClient
 
   iamRoleStatements:
     - Effect: Allow
@@ -38,6 +50,7 @@ provider:
         - !GetAtt CognitoUserPool.Arn
     - Effect: Allow
       Action:
+        - dynamodb:DeleteItem
         - dynamodb:GetItem
         - dynamodb:PutItem
         - dynamodb:Query
@@ -60,6 +73,7 @@ package:
 functions:
   - ${file(serverless/functions/create_repo.yaml)}
   - ${file(serverless/functions/create_user.yaml)}
+  - ${file(serverless/functions/delete_repo.yaml)}
   - ${file(serverless/functions/delete_user.yaml)}
   - ${file(serverless/functions/list_repos.yaml)}
   - ${file(serverless/functions/list_users.yaml)}
