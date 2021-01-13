@@ -14,7 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
-	"github.com/seanturner026/serverless-release-dashboard/pkg/util"
+	"github.com/seanturner026/serverless-release-dashboard/internal/util"
 )
 
 type createRepoEvent struct {
@@ -76,8 +76,7 @@ func (app *application) handler(event events.APIGatewayProxyRequest) (events.API
 		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to stage provided information for loading into DynamoDB for ID %v, %v", e.RepoName, err), 404, err, headers)
 		return resp, nil
 	}
-	log.Printf("[DEBUG] event %v", e)
-	log.Printf("[DEBUG] input %v", itemInput)
+
 	err = app.writeRepoToDB(e, itemInput)
 	if err != nil {
 		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to write record %v to DynamoDB table, %v", e.RepoName, err), 404, err, headers)

@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/google/go-github/github"
-	util "github.com/seanturner026/serverless-release-dashboard/pkg/util"
+	util "github.com/seanturner026/serverless-release-dashboard/internal/util"
 	"golang.org/x/oauth2"
 )
 

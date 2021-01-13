@@ -13,7 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
-	"github.com/seanturner026/serverless-release-dashboard/pkg/util"
+	"github.com/seanturner026/serverless-release-dashboard/internal/util"
 )
 
 type deleteRepoEvent struct {

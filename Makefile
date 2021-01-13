@@ -1,41 +1,33 @@
-.PHONY: build clean deploy gomodgen
+.PHONY: build test deploy destroy
 
-build: gomodgen
-	@printf "\n"
+build:
 	export GO111MODULE=on
-	env GOOS=linux go build -ldflags="-s -w" -o bin/create_repo         src/create_repo/main.go
-	env GOOS=linux go build -ldflags="-s -w" -o bin/create_user         src/create_user/main.go
-	env GOOS=linux go build -ldflags="-s -w" -o bin/delete_repo         src/delete_repo/main.go
-	env GOOS=linux go build -ldflags="-s -w" -o bin/delete_user         src/delete_user/main.go
-	env GOOS=linux go build -ldflags="-s -w" -o bin/list_repos          src/list_repos/main.go
-	env GOOS=linux go build -ldflags="-s -w" -o bin/list_users          src/list_users/main.go
-	env GOOS=linux go build -ldflags="-s -w" -o bin/login_user          src/login_user/main.go
-	env GOOS=linux go build -ldflags="-s -w" -o bin/release             src/release/main.go
-	env GOOS=linux go build -ldflags="-s -w" -o bin/reset_user_password src/reset_user_password/main.go
+	env GOOS=linux go build -ldflags="-s -w" -o bin/create_repo         cmd/create_repo/main.go
+	env GOOS=linux go build -ldflags="-s -w" -o bin/create_user         cmd/create_user/main.go
+	env GOOS=linux go build -ldflags="-s -w" -o bin/delete_repo         cmd/delete_repo/main.go
+	env GOOS=linux go build -ldflags="-s -w" -o bin/delete_user         cmd/delete_user/main.go
+	env GOOS=linux go build -ldflags="-s -w" -o bin/list_repos          cmd/list_repos/main.go
+	env GOOS=linux go build -ldflags="-s -w" -o bin/list_users          cmd/list_users/main.go
+	env GOOS=linux go build -ldflags="-s -w" -o bin/login_user          cmd/login_user/main.go
+	env GOOS=linux go build -ldflags="-s -w" -o bin/release             cmd/release/main.go
+	env GOOS=linux go build -ldflags="-s -w" -o bin/reset_user_password cmd/reset_user_password/main.go
 
 test:
 	@printf "\n"
 	go test \
-	./src/create_repo \
-	./src/create_user \
-	./src/delete_repo \
-	./src/delete_user \
-	./src/list_repos \
-	./src/list_users \
-	./src/login_user \
-	./src/release \
-	./src/reset_user_password \
+	./cmd/create_repo \
+	./cmd/create_user \
+	./cmd/delete_repo \
+	./cmd/delete_user \
+	./cmd/list_repos \
+	./cmd/list_users \
+	./cmd/login_user \
+	./cmd/release \
+	./cmd/reset_user_password \
 
-clean:
-	rm -rf ./bin ./vendor go.sum
-
-deploy: clean build test
+deploy: build test
 	@printf "\n"
-	sls deploy --verbose  --aws-profile sean
-
-gomodgen:
-	chmod u+x gomod.sh
-	./gomod.sh
+	serverless deploy --verbose  --aws-profile ${AWS_DEFAULT_PROFILE}
 
 destroy:
-	serverless remove --verbose --aws-profile sean
+	serverless remove --verbose --aws-profile ${AWS_DEFAULT_PROFILE}

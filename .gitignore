@@ -23,4 +23,4 @@ vendor
 .env.*
 .DS_Store
 
-src/scratch*
+cmd/scratch*

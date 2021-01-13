@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -12,14 +13,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	cidpif "github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
-	util "github.com/seanturner026/serverless-release-dashboard/pkg/util"
+	util "github.com/seanturner026/serverless-release-dashboard/internal/util"
 )
 
 type resetPasswordEvent struct {
 	EmailAddress string `json:"email_address"`
 	NewPassword  string `json:"new_password"`
 	SessionID    string `json:"session_id"`
-	// UserID       string `json:"user_id"`
 }
 
 type application struct {
@@ -77,8 +77,14 @@ func (app *application) resetPassword(e resetPasswordEvent, secretHash string) (
 	return *resp.AuthenticationResult.AccessToken, nil
 }
 
-func (app *application) handler(e resetPasswordEvent) (events.APIGatewayProxyResponse, error) {
+func (app *application) handler(event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	headers := map[string]string{"Content-Type": "application/json"}
+
+	e := resetPasswordEvent{}
+	err := json.Unmarshal([]byte(event.Body), &e)
+	if err != nil {
+		log.Printf("[ERROR] %v", err)
+	}
 
 	clientSecret, err := app.getUserPoolClientSecret()
 	if err != nil {

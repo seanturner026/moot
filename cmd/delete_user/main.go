@@ -13,10 +13,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	cidpif "github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
-	util "github.com/seanturner026/serverless-release-dashboard/pkg/util"
+	util "github.com/seanturner026/serverless-release-dashboard/internal/util"
 )
 
-type createUserEvent struct {
+type deleteUserEvent struct {
 	EmailAddress string `json:"email_address"`
 }
 
@@ -29,20 +29,12 @@ type configuration struct {
 	idp        cidpif.CognitoIdentityProviderAPI
 }
 
-func (app *application) createUser(e createUserEvent) error {
-	input := &cidp.AdminCreateUserInput{
-		UserPoolId:             aws.String(app.config.UserPoolID),
-		Username:               aws.String(e.EmailAddress),
-		DesiredDeliveryMediums: aws.StringSlice([]string{"EMAIL"}),
-		ForceAliasCreation:     aws.Bool(true),
-		UserAttributes: []*cidp.AttributeType{
-			{
-				Name:  aws.String("email"),
-				Value: aws.String(e.EmailAddress),
-			},
-		},
+func (app *application) deleteUser(e deleteUserEvent) error {
+	input := &cidp.AdminDeleteUserInput{
+		UserPoolId: aws.String(os.Getenv("USER_POOL_ID")),
+		Username:   aws.String(e.EmailAddress),
 	}
-	_, err := app.config.idp.AdminCreateUser(input)
+	_, err := app.config.idp.AdminDeleteUser(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			log.Printf("[ERROR] %v", aerr.Error())
@@ -51,26 +43,26 @@ func (app *application) createUser(e createUserEvent) error {
 		}
 		return err
 	}
-	log.Printf("[INFO] Created new user %v successfully", e.EmailAddress)
+	log.Printf("[INFO] Deleted user %v successfully", e.EmailAddress)
 	return nil
 }
 
 func (app *application) handler(event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	headers := map[string]string{"Content-Type": "application/json"}
 
-	e := createUserEvent{}
+	e := deleteUserEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
 	if err != nil {
 		log.Printf("[ERROR] %v", err)
 	}
 
-	err = app.createUser(e)
+	err = app.deleteUser(e)
 	if err != nil {
-		resp := util.GenerateResponseBody(fmt.Sprintf("Error creating user %v", e.EmailAddress), 404, err, headers)
+		resp := util.GenerateResponseBody(fmt.Sprintf("Error deleting user %v", e.EmailAddress), 404, err, headers)
 		return resp, nil
 	}
 
-	resp := util.GenerateResponseBody(fmt.Sprintf("Created new user %v", e.EmailAddress), 200, nil, headers)
+	resp := util.GenerateResponseBody(fmt.Sprintf("Deleted user %v", e.EmailAddress), 200, nil, headers)
 	return resp, nil
 }
 
@@ -81,6 +73,5 @@ func main() {
 	}
 
 	app := application{config: config}
-
 	lambda.Start(app.handler)
 }
