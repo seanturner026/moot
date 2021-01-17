@@ -1,5 +1,7 @@
 Release:
   handler: bin/release
+  package:
+    artifact: archive/Release.zip
   events:
     - httpApi:
         path: /release

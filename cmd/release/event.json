@@ -1,8 +1,18 @@
 {
-	"github_owner": "seanturner026",
-	"github_repo": "pygithub-go-github-playground",
-	"branch_head": "new",
-	"branch_base": "develop",
-	"release_version": "v0.3",
-	"release_body": "Automated release created by lambda"
+  "resource": "/",
+  "path": "/release",
+  "httpMethod": "POST",
+  "requestContext": {
+    "resourcePath": "/",
+    "httpMethod": "POST",
+    "path": "/release"
+  },
+  "headers": {},
+  "multiValueHeaders": {},
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": null,
+  "stageVariables": null,
+  "body": "{\"github_owner\": \"string\", \"github_repo\": \"string\", \"branch_head\": \"string\", \"branch_base\": \"string\", \"release_version\": \"string\", \"release_body\": \"string\"}",
+  "isBase64Encoded": false
 }

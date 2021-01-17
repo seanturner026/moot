@@ -1,10 +1,11 @@
 LoginUser:
   handler: bin/login_user
+  package:
+    artifact: archive/LoginUser.zip
   events:
     - httpApi:
         path: /login/user
         method: post
-        authorizer: cognitoAuthorizer
   environment:
     CLIENT_POOL_ID: !Ref CognitoUserPoolClient
     USER_POOL_ID: !Ref CognitoUserPool

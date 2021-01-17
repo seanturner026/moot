@@ -1,4 +1,18 @@
 {
-  "email_address": "string",
-  "password": "string"
+  "resource": "/",
+  "path": "/login/user",
+  "httpMethod": "POST",
+  "requestContext": {
+    "resourcePath": "/",
+    "httpMethod": "POST",
+    "path": "/login/user"
+  },
+  "headers": {},
+  "multiValueHeaders": {},
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": null,
+  "stageVariables": null,
+  "body": "{ \"email_address\": \"string\",\"password\": \"string\"}",
+  "isBase64Encoded": false
 }

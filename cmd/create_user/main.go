@@ -29,7 +29,7 @@ type configuration struct {
 	idp        cidpif.CognitoIdentityProviderAPI
 }
 
-func (app *application) createUser(e createUserEvent) error {
+func (app application) createUser(e createUserEvent) error {
 	input := &cidp.AdminCreateUserInput{
 		UserPoolId:             aws.String(app.config.UserPoolID),
 		Username:               aws.String(e.EmailAddress),
@@ -55,7 +55,7 @@ func (app *application) createUser(e createUserEvent) error {
 	return nil
 }
 
-func (app *application) handler(event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func (app application) handler(event events.APIGatewayProxyRequest) (events.APIGatewayV2HTTPResponse, error) {
 	headers := map[string]string{"Content-Type": "application/json"}
 
 	e := createUserEvent{}

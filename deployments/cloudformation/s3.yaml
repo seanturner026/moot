@@ -1,23 +1,23 @@
-# Resources:
-#   StaticSite:
-#     Type: AWS::S3::Bucket
-#     Properties:
-#       AccessControl: PublicRead
-#       BucketName: ${self:service}-${self:provider.stage}
-#       WebsiteConfiguration:
-#         IndexDocument: index.html
+Resources:
+  S3StaticSite:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: PublicRead
+      BucketName: ${self:service}-${self:provider.stage}-${self:custom.ACCOUNT_ID}
+      WebsiteConfiguration:
+        IndexDocument: index.html
 
-#   StaticSiteS3BucketPolicy:
-#     Type: AWS::S3::BucketPolicy
-#     Properties:
-#       Bucket:
-#         Ref: StaticSite
-#       PolicyDocument:
-#         Statement:
-#           - Sid: PublicReadGetObject
-#             Effect: Allow
-#             Principal: "*"
-#             Action:
-#               - s3:GetObject
-#             Resource:
-#               !Join: ["", ["arn:aws:s3:::", { "Ref": "StaticSite" }, "/*"]]
+  S3StaticSiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: S3StaticSite
+      PolicyDocument:
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal:
+              CanonicalUser: !GetAtt CloudfrontOriginAccessIdentity.S3CanonicalUserId
+            Action:
+              - s3:GetObject
+            Resource: !Sub arn:aws:s3:::${S3StaticSite}/*

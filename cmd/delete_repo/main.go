@@ -29,7 +29,7 @@ type configuration struct {
 	db        dynamodbiface.DynamoDBAPI
 }
 
-func (app *application) deleteRepo(e deleteRepoEvent) error {
+func (app application) deleteRepo(e deleteRepoEvent) error {
 	input := &dynamodb.DeleteItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
 			"pk": {
@@ -57,7 +57,7 @@ func (app *application) deleteRepo(e deleteRepoEvent) error {
 	return nil
 }
 
-func (app application) handler(event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func (app application) handler(event events.APIGatewayProxyRequest) (events.APIGatewayV2HTTPResponse, error) {
 	headers := map[string]string{"Content-Type": "application/json"}
 
 	e := deleteRepoEvent{}

@@ -1,5 +1,7 @@
 DeleteUser:
   handler: bin/delete_user
+  package:
+    artifact: archive/DeleteUser.zip
   events:
     - httpApi:
         path: /delete/user

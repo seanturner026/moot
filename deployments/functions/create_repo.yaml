@@ -1,5 +1,7 @@
 CreateRepo:
   handler: bin/create_repo
+  package:
+    artifact: archive/CreateRepo.zip
   events:
     - httpApi:
         path: /create/repo

@@ -38,7 +38,7 @@ type loginUserResponse struct {
 	UserID              string `json:"user_id,omitempty"`
 }
 
-func (app *application) getUserPoolClientSecret() (string, error) {
+func (app application) getUserPoolClientSecret() (string, error) {
 	input := &cidp.DescribeUserPoolClientInput{
 		UserPoolId: aws.String(app.config.UserPoolID),
 		ClientId:   aws.String(app.config.ClientPoolID),
@@ -57,7 +57,7 @@ func (app *application) getUserPoolClientSecret() (string, error) {
 	return *resp.UserPoolClient.ClientSecret, nil
 }
 
-func (app *application) loginUser(e loginUserEvent, secretHash string) (loginUserResponse, error) {
+func (app application) loginUser(e loginUserEvent, secretHash string) (loginUserResponse, error) {
 	input := &cidp.InitiateAuthInput{
 		AuthFlow: aws.String("USER_PASSWORD_AUTH"),
 		AuthParameters: map[string]*string{
@@ -80,21 +80,24 @@ func (app *application) loginUser(e loginUserEvent, secretHash string) (loginUse
 		return loginUserResp, err
 	}
 
-	if *resp.ChallengeName == "NEW_PASSWORD_REQUIRED" {
-		log.Printf("[INFO] New password required for %v", e.EmailAddress)
-		loginUserResp.NewPasswordRequired = true
-		loginUserResp.SessionID = *resp.Session
-		loginUserResp.UserID = *resp.ChallengeParameters["USER_ID_FOR_SRP"]
-		return loginUserResp, nil
+	if resp.ChallengeName != nil {
+		if *resp.ChallengeName == "NEW_PASSWORD_REQUIRED" {
+			log.Printf("[INFO] New password required for %v", e.EmailAddress)
+			loginUserResp.NewPasswordRequired = true
+			loginUserResp.SessionID = *resp.Session
+			loginUserResp.UserID = *resp.ChallengeParameters["USER_ID_FOR_SRP"]
+			return loginUserResp, nil
+		}
 	}
 
 	log.Printf("[INFO] Authenticated user %v successfully", e.EmailAddress)
+
 	loginUserResp.AccessToken = *resp.AuthenticationResult.AccessToken
 	loginUserResp.NewPasswordRequired = false
 	return loginUserResp, nil
 }
 
-func (app *application) handler(event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
 	headers := map[string]string{"Content-Type": "application/json"}
 
 	e := loginUserEvent{}

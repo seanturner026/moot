@@ -2,6 +2,7 @@
 .serverless
 
 # golang output binary directory
+archive
 bin
 
 # golang vendor (dependencies) directory
@@ -22,5 +23,3 @@ vendor
 
 .env.*
 .DS_Store
-
-cmd/scratch*

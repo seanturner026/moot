@@ -1,0 +1,10 @@
+Resources:
+  ACMCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      CertificateTransparencyLoggingPreference: DISABLED
+      DomainName: ${self:custom.DOMAIN}
+      ValidationMethod: DNS
+      Tags:
+        - Key: Name
+          Value: ${self:service}-${self:provider.stage}

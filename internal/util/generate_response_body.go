@@ -15,7 +15,7 @@ type responseBody struct {
 }
 
 // GenerateResponseBody creates the response sent back to the client depending on the error message and error type
-func GenerateResponseBody(message string, statusCode int, err error, Headers map[string]string) events.APIGatewayProxyResponse {
+func GenerateResponseBody(message string, statusCode int, err error, headers map[string]string) events.APIGatewayV2HTTPResponse {
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			message = fmt.Sprintf("%v, %v", message, aerr.Error())
@@ -32,12 +32,14 @@ func GenerateResponseBody(message string, statusCode int, err error, Headers map
 
 	var buf bytes.Buffer
 	json.HTMLEscape(&buf, body)
-	resp := events.APIGatewayProxyResponse{
+	resp := events.APIGatewayV2HTTPResponse{
 		StatusCode:      statusCode,
-		Headers:         Headers,
+		Headers:         headers,
 		Body:            buf.String(),
 		IsBase64Encoded: false,
 	}
+
+	log.Printf("[DEBUG] resp %+v", resp)
 
 	return resp
 }

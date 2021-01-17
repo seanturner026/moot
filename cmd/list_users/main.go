@@ -37,7 +37,7 @@ func (userNames *listUsersResponse) appendUserToResponse(user userName) {
 	userNames.Users = append(userNames.Users, user)
 }
 
-func (app *application) listUsers() (listUsersResponse, error) {
+func (app application) listUsers() (listUsersResponse, error) {
 	input := &cidp.ListUsersInput{
 		AttributesToGet: aws.StringSlice([]string{"email"}),
 		Limit:           aws.Int64(60),
@@ -63,7 +63,7 @@ func (app *application) listUsers() (listUsersResponse, error) {
 	return *userNames, nil
 }
 
-func (app *application) handler() (events.APIGatewayProxyResponse, error) {
+func (app application) handler() (events.APIGatewayV2HTTPResponse, error) {
 	headers := map[string]string{"Content-Type": "application/json"}
 
 	userNames, err := app.listUsers()
@@ -81,7 +81,7 @@ func (app *application) handler() (events.APIGatewayProxyResponse, error) {
 
 	var buf bytes.Buffer
 	json.HTMLEscape(&buf, body)
-	resp := events.APIGatewayProxyResponse{
+	resp := events.APIGatewayV2HTTPResponse{
 		StatusCode:      statusCode,
 		Headers:         headers,
 		Body:            buf.String(),

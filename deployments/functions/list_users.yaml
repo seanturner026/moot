@@ -1,5 +1,7 @@
 ListUsers:
   handler: bin/list_users
+  package:
+    artifact: archive/ListUsers.zip
   events:
     - httpApi:
         method: GET

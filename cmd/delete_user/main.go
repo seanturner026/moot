@@ -29,7 +29,7 @@ type configuration struct {
 	idp        cidpif.CognitoIdentityProviderAPI
 }
 
-func (app *application) deleteUser(e deleteUserEvent) error {
+func (app application) deleteUser(e deleteUserEvent) error {
 	input := &cidp.AdminDeleteUserInput{
 		UserPoolId: aws.String(os.Getenv("USER_POOL_ID")),
 		Username:   aws.String(e.EmailAddress),
@@ -47,7 +47,7 @@ func (app *application) deleteUser(e deleteUserEvent) error {
 	return nil
 }
 
-func (app *application) handler(event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func (app application) handler(event events.APIGatewayProxyRequest) (events.APIGatewayV2HTTPResponse, error) {
 	headers := map[string]string{"Content-Type": "application/json"}
 
 	e := deleteUserEvent{}

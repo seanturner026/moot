@@ -11,6 +11,8 @@ build:
 	env GOOS=linux go build -ldflags="-s -w" -o bin/login_user          cmd/login_user/main.go
 	env GOOS=linux go build -ldflags="-s -w" -o bin/release             cmd/release/main.go
 	env GOOS=linux go build -ldflags="-s -w" -o bin/reset_user_password cmd/reset_user_password/main.go
+	env GOOS=linux go build -ldflags="-s -w" -o bin/verify_auth         cmd/verify_auth/main.go
+
 
 test:
 	@printf "\n"
@@ -24,8 +26,22 @@ test:
 	./cmd/login_user \
 	./cmd/release \
 	./cmd/reset_user_password \
+	./cmd/verify_auth \
 
-deploy: build test
+compress:
+	@printf "\n"
+	zip archive/CreateRepo.zip        bin/create_repo
+	zip archive/CreateUser.zip        bin/create_user
+	zip archive/DeleteRepo.zip        bin/delete_repo
+	zip archive/DeleteUser.zip        bin/delete_user
+	zip archive/ListRepos.zip         bin/list_repos
+	zip archive/ListUsers.zip         bin/list_users
+	zip archive/LoginUser.zip         bin/login_user
+	zip archive/Release.zip           bin/release
+	zip archive/ResetUserPassword.zip bin/reset_user_password
+	zip archive/VerifyAuth.zip        bin/verify_auth
+
+deploy: build test compress
 	@printf "\n"
 	serverless deploy --verbose  --aws-profile ${AWS_DEFAULT_PROFILE}
 

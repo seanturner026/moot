@@ -1,6 +1,18 @@
 {
-  "repo_name": "pygithub-go-github-playground",
-  "repo_owner": "seanturner026",
-  "branch_head": "new",
-  "branch_base": "develop"
+  "resource": "/",
+  "path": "/create/repo",
+  "httpMethod": "POST",
+  "requestContext": {
+    "resourcePath": "/",
+    "httpMethod": "POST",
+    "path": "/create/repo"
+  },
+  "headers": {},
+  "multiValueHeaders": {},
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": null,
+  "stageVariables": null,
+  "body": "{\"repo_name\": \"string\", \"repo_owner\": \"string\", \"branch_head\": \"string\", \"branch_base\": \"string\"}",
+  "isBase64Encoded": false
 }

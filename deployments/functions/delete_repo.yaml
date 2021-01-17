@@ -1,5 +1,7 @@
 DeleteRepo:
   handler: bin/delete_repo
+  package:
+    artifact: archive/DeleteRepo.zip
   events:
     - httpApi:
         path: /delete/repo

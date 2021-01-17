@@ -1,3 +1,18 @@
 {
-  "email_address": "string"
+  "resource": "/",
+  "path": "/create/user",
+  "httpMethod": "POST",
+  "requestContext": {
+    "resourcePath": "/",
+    "httpMethod": "POST",
+    "path": "/create/user"
+  },
+  "headers": {},
+  "multiValueHeaders": {},
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": null,
+  "stageVariables": null,
+  "body": "{\"email_address\": \"string\"}",
+  "isBase64Encoded": false
 }

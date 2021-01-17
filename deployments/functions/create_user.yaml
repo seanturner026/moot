@@ -1,5 +1,7 @@
 CreateUser:
   handler: bin/create_user
+  package:
+    artifact: archive/CreateUser.zip
   events:
     - httpApi:
         path: /create/user

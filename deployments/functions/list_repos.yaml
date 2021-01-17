@@ -1,5 +1,7 @@
 ListRepos:
   handler: bin/list_repos
+  package:
+    artifact: archive/ListRepos.zip
   events:
     - httpApi:
         path: /list/repos

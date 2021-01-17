@@ -107,7 +107,7 @@ func createRelease(githubCtx context.Context, c *github.Client, e releaseEvent) 
 }
 
 // handler executes the release and notification workflow
-func handler(event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func handler(event events.APIGatewayProxyRequest) (events.APIGatewayV2HTTPResponse, error) {
 	headers := map[string]string{"Content-Type": "application/json"}
 
 	e := releaseEvent{}

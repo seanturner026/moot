@@ -32,7 +32,7 @@ type configuration struct {
 	idp          cidpif.CognitoIdentityProviderAPI
 }
 
-func (app *application) getUserPoolClientSecret() (string, error) {
+func (app application) getUserPoolClientSecret() (string, error) {
 	input := &cidp.DescribeUserPoolClientInput{
 		UserPoolId: aws.String(app.config.UserPoolID),
 		ClientId:   aws.String(app.config.ClientPoolID),
@@ -51,7 +51,7 @@ func (app *application) getUserPoolClientSecret() (string, error) {
 	return *resp.UserPoolClient.ClientSecret, nil
 }
 
-func (app *application) resetPassword(e resetPasswordEvent, secretHash string) (string, error) {
+func (app application) resetPassword(e resetPasswordEvent, secretHash string) (string, error) {
 	input := &cidp.AdminRespondToAuthChallengeInput{
 		ChallengeName: aws.String("NEW_PASSWORD_REQUIRED"),
 		ChallengeResponses: map[string]*string{
@@ -77,7 +77,7 @@ func (app *application) resetPassword(e resetPasswordEvent, secretHash string) (
 	return *resp.AuthenticationResult.AccessToken, nil
 }
 
-func (app *application) handler(event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func (app application) handler(event events.APIGatewayProxyRequest) (events.APIGatewayV2HTTPResponse, error) {
 	headers := map[string]string{"Content-Type": "application/json"}
 
 	e := resetPasswordEvent{}

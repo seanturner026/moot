@@ -2,15 +2,25 @@ service: release-dashboard
 
 frameworkVersion: "2"
 
+custom: ${file(.env.${self:provider.stage}.yaml)}
+
+package:
+  exclude:
+    - ./**
+  include:
+    - ./bin/**
+  individually: true
+
 provider:
   name: aws
   runtime: go1.x
   stage: dev
-  region: ap-southeast-2
+  region: us-east-1
   memorySize: 128
   logRetentionInDays: 7
   tags:
     App: ${self:service}
+    Environment: ${self:provider.stage}
     ManagedBy: serverless framework
 
   apiGateway:
@@ -19,21 +29,16 @@ provider:
   httpApi:
     cors:
       allowedOrigins:
-        - https://release.fw
         - http://localhost:8080
+        - https://${self:custom.DOMAIN}
+        - !Sub https://${CloudfrontDistribution.DomainName}
       allowedHeaders:
         - Content-Type
         - Authorization
     authorizers:
       cognitoAuthorizer:
         identitySource: $request.header.Authorization
-        issuerUrl:
-          Fn::Join:
-            - ""
-            - - "https://cognito-idp."
-              - "${opt:region, self:provider.region}"
-              - ".amazonaws.com/"
-              - !Ref CognitoUserPool
+        issuerUrl: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${CognitoUserPool}
         audience:
           - Ref: CognitoUserPoolClient
 
@@ -57,18 +62,7 @@ provider:
         - dynamodb:UpdateItem
       Resource:
         - !GetAtt DynamoDBTable.Arn
-        - !Join
-          - ""
-          - - !GetAtt DynamoDBTable.Arn
-            - /index/repo
-
-custom: ${file(.env.${self:provider.stage}.yaml)}
-
-package:
-  exclude:
-    - ./**
-  include:
-    - ./bin/**
+        - !Sub ${DynamoDBTable.Arn}/index/repo
 
 functions:
   - ${file(deployments/functions/create_repo.yaml)}
@@ -80,8 +74,12 @@ functions:
   - ${file(deployments/functions/login_user.yaml)}
   - ${file(deployments/functions/release.yaml)}
   - ${file(deployments/functions/reset_user_password.yaml)}
+  - ${file(deployments/functions/verify_auth.yaml)}
 
 resources:
+  - ${file(deployments/cloudformation/acm.yaml)}
+  - ${file(deployments/cloudformation/cloudfront.yaml)}
   - ${file(deployments/cloudformation/cognito.yaml)}
   - ${file(deployments/cloudformation/dynamodb.yaml)}
-  # - ${file(deployments/cloudformation/s3.yaml)}
+  - ${file(deployments/cloudformation/s3.yaml)}
+  - ${file(deployments/cloudformation/waf.yaml)}

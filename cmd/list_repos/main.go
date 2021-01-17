@@ -39,7 +39,7 @@ type configuration struct {
 	db                       dynamodbiface.DynamoDBAPI
 }
 
-func (app *application) listRepos(e listReposEvent) (dynamodb.QueryOutput, error) {
+func (app application) listRepos(e listReposEvent) (dynamodb.QueryOutput, error) {
 	input := &dynamodb.QueryInput{
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":type": {
@@ -68,7 +68,7 @@ func (app *application) listRepos(e listReposEvent) (dynamodb.QueryOutput, error
 	return *resp, err
 }
 
-func (app *application) handler(event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func (app application) handler(event events.APIGatewayProxyRequest) (events.APIGatewayV2HTTPResponse, error) {
 	headers := map[string]string{"Content-Type": "application/json"}
 
 	e := listReposEvent{}
@@ -100,8 +100,7 @@ func (app *application) handler(event events.APIGatewayProxyRequest) (events.API
 	var buf bytes.Buffer
 	json.HTMLEscape(&buf, body)
 
-	log.Printf("[DEBUG] body %v", buf.String())
-	resp := events.APIGatewayProxyResponse{
+	resp := events.APIGatewayV2HTTPResponse{
 		StatusCode:      statusCode,
 		Headers:         headers,
 		Body:            buf.String(),

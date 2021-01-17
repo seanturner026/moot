@@ -43,7 +43,7 @@ func generatePutItemInput(e createRepoEvent) (createRepoEvent, map[string]*dynam
 	return e, itemInput, nil
 }
 
-func (app *application) writeRepoToDB(e createRepoEvent, itemInput map[string]*dynamodb.AttributeValue) error {
+func (app application) writeRepoToDB(e createRepoEvent, itemInput map[string]*dynamodb.AttributeValue) error {
 	input := &dynamodb.PutItemInput{
 		ReturnConsumedCapacity: aws.String("TOTAL"),
 		TableName:              aws.String(app.config.TableName),
@@ -62,7 +62,7 @@ func (app *application) writeRepoToDB(e createRepoEvent, itemInput map[string]*d
 	return nil
 }
 
-func (app *application) handler(event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func (app application) handler(event events.APIGatewayProxyRequest) (events.APIGatewayV2HTTPResponse, error) {
 	headers := map[string]string{"Content-Type": "application/json"}
 
 	e := createRepoEvent{}

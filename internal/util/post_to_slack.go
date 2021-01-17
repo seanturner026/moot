@@ -19,7 +19,7 @@ func PostToSlack(webhookURL, message string) {
 	slackBody, _ := json.Marshal(slackRequestBody{Text: message})
 	req, err := http.NewRequest(http.MethodPost, webhookURL, bytes.NewBuffer(slackBody))
 	if err != nil {
-		log.Printf("[ERROR] Unable to marshal json, %v", err)
+		log.Printf("[ERROR] Unable to form request, %v", err)
 	}
 
 	req.Header.Add("Content-Type", "application/json")
