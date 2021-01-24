@@ -1,11 +1,15 @@
 CreateUser:
-  handler: bin/create_user
+  handler: bin/functions/create_user
   package:
-    artifact: archive/CreateUser.zip
+    artifact: archive/functions/CreateUser.zip
   events:
     - httpApi:
         path: /create/user
         method: post
+        authorizer: cognitoAuthorizer
+    - httpApi:
+        path: /create/user/{proxy+}
+        method: options
         authorizer: cognitoAuthorizer
   maximumRetryAttempts: 0
   environment:

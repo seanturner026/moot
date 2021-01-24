@@ -1,80 +1,80 @@
 package main
 
-// import (
-// 	"testing"
+import (
+	"testing"
 
-// 	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
-// 	cidpif "github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
-// )
+	"github.com/aws/aws-sdk-go/aws"
+	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
+	cidpif "github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
+)
 
-// // import (
-// // 	"testing"
+type mockInitiateAuth struct {
+	cidpif.CognitoIdentityProviderAPI
+	Response *cidp.InitiateAuthOutput
+	Error    error
+}
 
-// // 	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
-// // 	cidpif "github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
-// // )
+func (m mockInitiateAuth) InitiateAuth(*cidp.InitiateAuthInput) (*cidp.InitiateAuthOutput, error) {
+	return m.Response, nil
+}
 
-// // type mockDescribeUserPoolClient struct {
-// // 	cidpif.CognitoIdentityProviderAPI
-// // 	Response *cidp.DescribeUserPoolClientOutput
-// // 	Error    error
-// // }
+func TestLoginUser(t *testing.T) {
+	t.Run("Successfully logged in user, user must change password", func(t *testing.T) {
 
-// type mockInitiateAuth struct {
-// 	cidpif.CognitoIdentityProviderAPI
-// 	Response *cidp.InitiateAuthOutput
-// 	Error    error
-// }
+		idpMock := mockInitiateAuth{
+			Response: &cidp.InitiateAuthOutput{
+				ChallengeName:       aws.String("NEW_PASSWORD_REQUIRED"),
+				Session:             aws.String("test"),
+				ChallengeParameters: map[string]*string{"USER_ID_FOR_SRP": aws.String("test")},
+			},
+			Error: nil,
+		}
 
-// // func (m mockDescribeUserPoolClient) DescribeUserPoolClient(*cidp.DescribeUserPoolClientInput) (*cidp.DescribeUserPoolClientOutput, error) {
-// // 	return m.Response, nil
-// // }
+		app := application{config: configuration{
+			ClientPoolID: "test",
+			UserPoolID:   "test",
+			idp:          idpMock,
+		}}
 
-// func (m mockInitiateAuth) InitiateAuth(*cidp.InitiateAuthInput) (*cidp.InitiateAuthOutput, error) {
-// 	return m.Response, nil
-// }
+		event := loginUserEvent{
+			EmailAddress: "user@example.com",
+			Password:     "example123$%^",
+		}
 
-// // func TestGetUserPoolClientSecret(t *testing.T) {
-// // 	t.Run("Successfully obtained client pool secret", func(t *testing.T) {
-// // 		idpMock := mockDescribeUserPoolClient{
-// // 			Response: &cidp.DescribeUserPoolClientOutput{},
-// // 			Error:    nil,
-// // 		}
+		_, err := app.loginUser(event, "secretHashExample")
+		if err != nil {
+			t.Fatal("User should have been logged in")
+		}
+	})
 
-// // 		app := application{config: configuration{
-// // 			ClientPoolID: "test",
-// // 			UserPoolID:   "test",
-// // 			idp:          idpMock,
-// // 		}}
+	t.Run("Successfully logged in user", func(t *testing.T) {
 
-// // 		_, err := app.getUserPoolClientSecret()
-// // 		if err != nil {
-// // 			t.Fatal("App secret should have been obtained")
-// // 		}
-// // 	})
-// // }
+		idpMock := mockInitiateAuth{
+			Response: &cidp.InitiateAuthOutput{
+				ChallengeName: nil,
+				AuthenticationResult: &cidp.AuthenticationResultType{
+					AccessToken:  aws.String("test"),
+					RefreshToken: aws.String("test"),
+					ExpiresIn:    aws.Int64(1),
+				},
+			},
+			Error: nil,
+		}
 
-// func TestLoginUser(t *testing.T) {
-// 	t.Run("Successfully logged in user", func(t *testing.T) {
-// 		idpMock := mockInitiateAuth{
-// 			Response: &cidp.InitiateAuthOutput{},
-// 			Error:    nil,
-// 		}
+		app := application{config: configuration{
+			ClientPoolID: "test",
+			UserPoolID:   "test",
+			idp:          idpMock,
+		}}
 
-// 		app := application{config: configuration{
-// 			ClientPoolID: "test",
-// 			UserPoolID:   "test",
-// 			idp:          idpMock,
-// 		}}
+		event := loginUserEvent{
+			EmailAddress: "user@example.com",
+			Password:     "example123$%^",
+		}
 
-// 		event := loginUserEvent{
-// 			EmailAddress: "user@example.com",
-// 			Password:     "example123$%^",
-// 		}
-
-// 		_, err := app.loginUser(event, "secretHashExample")
-// 		if err != nil {
-// 			t.Fatal("User should have been logged in")
-// 		}
-// 	})
-// }
+		_, err := app.loginUser(event, "secretHashExample")
+		if err != nil {
+			t.Fatal("User should have been logged in")
+		}
+	})
+}

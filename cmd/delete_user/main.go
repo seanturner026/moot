@@ -58,11 +58,11 @@ func (app application) handler(event events.APIGatewayProxyRequest) (events.APIG
 
 	err = app.deleteUser(e)
 	if err != nil {
-		resp := util.GenerateResponseBody(fmt.Sprintf("Error deleting user %v", e.EmailAddress), 404, err, headers)
+		resp := util.GenerateResponseBody(fmt.Sprintf("Error deleting user %v", e.EmailAddress), 404, err, headers, []string{})
 		return resp, nil
 	}
 
-	resp := util.GenerateResponseBody(fmt.Sprintf("Deleted user %v", e.EmailAddress), 200, nil, headers)
+	resp := util.GenerateResponseBody(fmt.Sprintf("Deleted user %v", e.EmailAddress), 200, nil, headers, []string{})
 	return resp, nil
 }
 

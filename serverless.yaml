@@ -18,6 +18,7 @@ provider:
   region: us-east-1
   memorySize: 128
   logRetentionInDays: 7
+  versionFunctions: false
   tags:
     App: ${self:service}
     Environment: ${self:provider.stage}
@@ -27,14 +28,19 @@ provider:
     shouldStartNameWithService: true
 
   httpApi:
+    payload: "2.0"
     cors:
       allowedOrigins:
         - http://localhost:8080
-        - https://${self:custom.DOMAIN}
-        - !Sub https://${CloudfrontDistribution.DomainName}
+        # - https://${self:custom.DOMAIN}
+        # - !Sub https://${CloudfrontDistribution.DomainName}
       allowedHeaders:
         - Content-Type
         - Authorization
+        - X-Session-Id
+      allowCredentials: true
+      maxAge: 600
+
     authorizers:
       cognitoAuthorizer:
         identitySource: $request.header.Authorization
@@ -74,12 +80,14 @@ functions:
   - ${file(deployments/functions/login_user.yaml)}
   - ${file(deployments/functions/release.yaml)}
   - ${file(deployments/functions/reset_user_password.yaml)}
-  - ${file(deployments/functions/verify_auth.yaml)}
+
+  - ${file(deployments/custom_resources/custom_resources.yaml)}
 
 resources:
-  - ${file(deployments/cloudformation/acm.yaml)}
-  - ${file(deployments/cloudformation/cloudfront.yaml)}
+  # - ${file(deployments/cloudformation/acm.yaml)}
+  # - ${file(deployments/cloudformation/cloudfront.yaml)}
+  - ${file(deployments/cloudformation/custom_resources.yaml)}
   - ${file(deployments/cloudformation/cognito.yaml)}
   - ${file(deployments/cloudformation/dynamodb.yaml)}
-  - ${file(deployments/cloudformation/s3.yaml)}
-  - ${file(deployments/cloudformation/waf.yaml)}
+  # - ${file(deployments/cloudformation/s3.yaml)}
+  # - ${file(deployments/cloudformation/waf.yaml)}

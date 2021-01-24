@@ -1,11 +1,15 @@
 DeleteRepo:
-  handler: bin/delete_repo
+  handler: bin/functions/delete_repo
   package:
-    artifact: archive/DeleteRepo.zip
+    artifact: archive/functions/DeleteRepo.zip
   events:
     - httpApi:
         path: /delete/repo
         method: post
+        authorizer: cognitoAuthorizer
+    - httpApi:
+        path: /delete/repo/{proxy+}
+        method: options
         authorizer: cognitoAuthorizer
   maximumRetryAttempts: 0
   environment:

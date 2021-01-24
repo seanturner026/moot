@@ -1,11 +1,15 @@
 ListRepos:
-  handler: bin/list_repos
+  handler: bin/functions/list_repos
   package:
-    artifact: archive/ListRepos.zip
+    artifact: archive/functions/ListRepos.zip
   events:
     - httpApi:
         path: /list/repos
-        method: get
+        method: post
+        authorizer: cognitoAuthorizer
+    - httpApi:
+        path: /list/repos/{proxy+}
+        method: options
         authorizer: cognitoAuthorizer
   maximumRetryAttempts: 0
   environment:

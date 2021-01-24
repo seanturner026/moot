@@ -68,7 +68,7 @@ func (app application) handler() (events.APIGatewayV2HTTPResponse, error) {
 
 	userNames, err := app.listUsers()
 	if err != nil || len(userNames.Users) == 0 {
-		resp := util.GenerateResponseBody("Unable to populate list of users", 404, err, headers)
+		resp := util.GenerateResponseBody("Unable to populate list of users", 404, err, headers, []string{})
 		return resp, nil
 	}
 

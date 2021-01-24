@@ -1,11 +1,15 @@
 Release:
-  handler: bin/release
+  handler: bin/functions/release
   package:
-    artifact: archive/Release.zip
+    artifact: archive/functions/Release.zip
   events:
     - httpApi:
         path: /release
         method: post
+        authorizer: cognitoAuthorizer
+    - httpApi:
+        path: /release/{proxy+}
+        method: options
         authorizer: cognitoAuthorizer
   timeout: 10
   environment:

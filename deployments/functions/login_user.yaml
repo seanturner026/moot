@@ -1,11 +1,15 @@
 LoginUser:
-  handler: bin/login_user
+  handler: bin/functions/login_user
   package:
-    artifact: archive/LoginUser.zip
+    artifact: archive/functions/LoginUser.zip
   events:
     - httpApi:
         path: /login/user
         method: post
+    - httpApi:
+        path: /login/user/{proxy+}
+        method: options
   environment:
     CLIENT_POOL_ID: !Ref CognitoUserPoolClient
     USER_POOL_ID: !Ref CognitoUserPool
+    CLIENT_POOL_SECRET: !GetAtt CognitoClientSecret.Data

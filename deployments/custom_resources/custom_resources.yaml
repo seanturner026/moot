@@ -1,0 +1,8 @@
+CFNGetCognitoClientSecret:
+  runtime: python3.7
+  handler: get_cognito_client_secret.handler
+  package:
+    artifact: archive/custom_resources/CFNGetCognitoClientSecret.zip
+  environment:
+    CLIENT_POOL_ID: !Ref CognitoUserPoolClient
+    USER_POOL_ID: !Ref CognitoUserPool

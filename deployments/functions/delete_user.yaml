@@ -1,11 +1,15 @@
 DeleteUser:
-  handler: bin/delete_user
+  handler: bin/functions/delete_user
   package:
-    artifact: archive/DeleteUser.zip
+    artifact: archive/functions/DeleteUser.zip
   events:
     - httpApi:
         path: /delete/user
         method: post
+        authorizer: cognitoAuthorizer
+    - httpApi:
+        path: /delete/user/{proxy+}
+        method: options
         authorizer: cognitoAuthorizer
   maximumRetryAttempts: 0
   environment:

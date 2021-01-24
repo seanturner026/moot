@@ -1,0 +1,5 @@
+Resources:
+  CognitoClientSecret:
+    Type: Custom::CognitoClientSecret
+    Properties:
+      ServiceToken: !GetAtt CFNGetCognitoClientSecretLambdaFunction.Arn

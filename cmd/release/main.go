@@ -115,6 +115,7 @@ func handler(event events.APIGatewayProxyRequest) (events.APIGatewayV2HTTPRespon
 	if err != nil {
 		log.Printf("[ERROR] %v", err)
 	}
+	e.ReleaseBody = fmt.Sprintf("%v%v%v", "```", e.ReleaseBody, "```")
 
 	prResp, err := createPullRequest(githubCtx, clientGithub, e)
 	if err != nil {
@@ -123,7 +124,7 @@ func handler(event events.APIGatewayProxyRequest) (events.APIGatewayV2HTTPRespon
 			e.GithubRepo,
 			e.ReleaseVersion,
 		)
-		resp := util.GenerateResponseBody(message, 404, err, headers)
+		resp := util.GenerateResponseBody(message, 404, err, headers, []string{})
 		return resp, nil
 	}
 
@@ -135,7 +136,7 @@ func handler(event events.APIGatewayProxyRequest) (events.APIGatewayV2HTTPRespon
 			e.GithubRepo,
 			e.ReleaseVersion,
 		)
-		resp := util.GenerateResponseBody(message, 404, err, headers)
+		resp := util.GenerateResponseBody(message, 404, err, headers, []string{})
 		return resp, nil
 	}
 
@@ -147,7 +148,7 @@ func handler(event events.APIGatewayProxyRequest) (events.APIGatewayV2HTTPRespon
 			e.GithubRepo,
 			e.ReleaseVersion,
 		)
-		resp := util.GenerateResponseBody(message, 404, err, headers)
+		resp := util.GenerateResponseBody(message, 404, err, headers, []string{})
 		return resp, nil
 	}
 
@@ -158,7 +159,7 @@ func handler(event events.APIGatewayProxyRequest) (events.APIGatewayV2HTTPRespon
 			e.GithubRepo,
 			e.ReleaseVersion,
 		)
-		resp := util.GenerateResponseBody(message, 404, err, headers)
+		resp := util.GenerateResponseBody(message, 404, err, headers, []string{})
 		return resp, nil
 	}
 
@@ -169,7 +170,7 @@ func handler(event events.APIGatewayProxyRequest) (events.APIGatewayV2HTTPRespon
 		e.ReleaseBody,
 	))
 
-	resp := util.GenerateResponseBody(fmt.Sprintf("Released %v version %v successfully,", e.GithubRepo, e.ReleaseVersion), 200, nil, headers)
+	resp := util.GenerateResponseBody(fmt.Sprintf("Released %v version %v successfully,", e.GithubRepo, e.ReleaseVersion), 200, nil, headers, []string{})
 	return resp, nil
 }
 

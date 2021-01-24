@@ -27,9 +27,10 @@ type application struct {
 }
 
 type configuration struct {
-	ClientPoolID string
-	UserPoolID   string
-	idp          cidpif.CognitoIdentityProviderAPI
+	ClientPoolID     string
+	UserPoolID       string
+	ClientPoolSecret string
+	idp              cidpif.CognitoIdentityProviderAPI
 }
 
 func (app application) getUserPoolClientSecret() (string, error) {
@@ -86,29 +87,24 @@ func (app application) handler(event events.APIGatewayProxyRequest) (events.APIG
 		log.Printf("[ERROR] %v", err)
 	}
 
-	clientSecret, err := app.getUserPoolClientSecret()
-	if err != nil {
-		resp := util.GenerateResponseBody("Error obtaining user pool client secret", 404, err, headers)
-		return resp, nil
-	}
-
-	secretHash := util.GenerateSecretHash(clientSecret, e.EmailAddress, app.config.ClientPoolID)
+	secretHash := util.GenerateSecretHash(app.config.ClientPoolSecret, e.EmailAddress, app.config.ClientPoolID)
 	AccessToken, err := app.resetPassword(e, secretHash)
 	if err != nil {
-		resp := util.GenerateResponseBody(fmt.Sprintf("Error changing user %v password", e.EmailAddress), 404, err, headers)
+		resp := util.GenerateResponseBody(fmt.Sprintf("Error changing user %v password", e.EmailAddress), 404, err, headers, []string{})
 		return resp, nil
 	}
 
 	headers["Authorization"] = fmt.Sprintf("Bearer %v", AccessToken)
-	resp := util.GenerateResponseBody(fmt.Sprintf("User %v changed password successfully", e.EmailAddress), 200, err, headers)
+	resp := util.GenerateResponseBody(fmt.Sprintf("User %v changed password successfully", e.EmailAddress), 200, err, headers, []string{})
 	return resp, nil
 }
 
 func main() {
 	config := configuration{
-		ClientPoolID: os.Getenv("CLIENT_POOL_ID"),
-		UserPoolID:   os.Getenv("USER_POOL_ID"),
-		idp:          cidp.New(session.Must(session.NewSession())),
+		ClientPoolID:     os.Getenv("CLIENT_POOL_ID"),
+		UserPoolID:       os.Getenv("USER_POOL_ID"),
+		ClientPoolSecret: os.Getenv("CLIENT_POOL_SECRET"),
+		idp:              cidp.New(session.Must(session.NewSession())),
 	}
 
 	app := application{config: config}

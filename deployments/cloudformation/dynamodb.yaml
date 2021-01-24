@@ -25,6 +25,9 @@ Resources:
               KeyType: RANGE
           Projection:
             ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
       # ProvisionedThroughput:
       #   ReadCapacityUnits: 1
       #   WriteCapacityUnits: 1

@@ -73,17 +73,17 @@ func (app application) handler(event events.APIGatewayProxyRequest) (events.APIG
 
 	e, itemInput, err := generatePutItemInput(e)
 	if err != nil {
-		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to stage provided information for loading into DynamoDB for ID %v, %v", e.RepoName, err), 404, err, headers)
+		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to stage provided information for loading into DynamoDB for ID %v, %v", e.RepoName, err), 404, err, headers, []string{})
 		return resp, nil
 	}
 
 	err = app.writeRepoToDB(e, itemInput)
 	if err != nil {
-		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to write record %v to DynamoDB table, %v", e.RepoName, err), 404, err, headers)
+		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to write record %v to DynamoDB table, %v", e.RepoName, err), 404, err, headers, []string{})
 		return resp, nil
 	}
 
-	resp := util.GenerateResponseBody(fmt.Sprintf("Wrote record %v to DynamoDB successfully", e.RepoName), 200, nil, headers)
+	resp := util.GenerateResponseBody(fmt.Sprintf("Wrote record %v to DynamoDB successfully", e.RepoName), 200, nil, headers, []string{})
 	return resp, nil
 }
 

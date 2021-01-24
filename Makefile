@@ -2,16 +2,15 @@
 
 build:
 	export GO111MODULE=on
-	env GOOS=linux go build -ldflags="-s -w" -o bin/create_repo         cmd/create_repo/main.go
-	env GOOS=linux go build -ldflags="-s -w" -o bin/create_user         cmd/create_user/main.go
-	env GOOS=linux go build -ldflags="-s -w" -o bin/delete_repo         cmd/delete_repo/main.go
-	env GOOS=linux go build -ldflags="-s -w" -o bin/delete_user         cmd/delete_user/main.go
-	env GOOS=linux go build -ldflags="-s -w" -o bin/list_repos          cmd/list_repos/main.go
-	env GOOS=linux go build -ldflags="-s -w" -o bin/list_users          cmd/list_users/main.go
-	env GOOS=linux go build -ldflags="-s -w" -o bin/login_user          cmd/login_user/main.go
-	env GOOS=linux go build -ldflags="-s -w" -o bin/release             cmd/release/main.go
-	env GOOS=linux go build -ldflags="-s -w" -o bin/reset_user_password cmd/reset_user_password/main.go
-	env GOOS=linux go build -ldflags="-s -w" -o bin/verify_auth         cmd/verify_auth/main.go
+	env GOOS=linux go build -ldflags="-s -w" -o bin/functions/create_repo         cmd/create_repo/main.go &
+	env GOOS=linux go build -ldflags="-s -w" -o bin/functions/create_user         cmd/create_user/main.go &
+	env GOOS=linux go build -ldflags="-s -w" -o bin/functions/delete_repo         cmd/delete_repo/main.go &
+	env GOOS=linux go build -ldflags="-s -w" -o bin/functions/delete_user         cmd/delete_user/main.go &
+	env GOOS=linux go build -ldflags="-s -w" -o bin/functions/list_repos          cmd/list_repos/main.go &
+	env GOOS=linux go build -ldflags="-s -w" -o bin/functions/list_users          cmd/list_users/main.go &
+	env GOOS=linux go build -ldflags="-s -w" -o bin/functions/login_user          cmd/login_user/main.go &
+	env GOOS=linux go build -ldflags="-s -w" -o bin/functions/release             cmd/release/main.go &
+	env GOOS=linux go build -ldflags="-s -w" -o bin/functions/reset_user_password cmd/reset_user_password/main.go &
 
 
 test:
@@ -26,22 +25,26 @@ test:
 	./cmd/login_user \
 	./cmd/release \
 	./cmd/reset_user_password \
-	./cmd/verify_auth \
 
 compress:
 	@printf "\n"
-	zip archive/CreateRepo.zip        bin/create_repo
-	zip archive/CreateUser.zip        bin/create_user
-	zip archive/DeleteRepo.zip        bin/delete_repo
-	zip archive/DeleteUser.zip        bin/delete_user
-	zip archive/ListRepos.zip         bin/list_repos
-	zip archive/ListUsers.zip         bin/list_users
-	zip archive/LoginUser.zip         bin/login_user
-	zip archive/Release.zip           bin/release
-	zip archive/ResetUserPassword.zip bin/reset_user_password
-	zip archive/VerifyAuth.zip        bin/verify_auth
+	zip -q archive/functions/CreateRepo.zip        bin/functions/create_repo  &
+	zip -q archive/functions/CreateUser.zip        bin/functions/create_user &
+	zip -q archive/functions/DeleteRepo.zip        bin/functions/delete_repo &
+	zip -q archive/functions/DeleteUser.zip        bin/functions/delete_user &
+	zip -q archive/functions/ListRepos.zip         bin/functions/list_repos &
+	zip -q archive/functions/ListUsers.zip         bin/functions/list_users &
+	zip -q archive/functions/LoginUser.zip         bin/functions/login_user &
+	zip -q archive/functions/Release.zip           bin/functions/release &
+	zip -q archive/functions/ResetUserPassword.zip bin/functions/reset_user_password &
+
+	@printf "\n"
+	zip -q -j archive/custom_resources/CFNGetCognitoClientSecret.zip \
+		deployments/custom_resources/get_cognito_client_secret.py \
+		deployments/custom_resources/cfnresponse.py
 
 deploy: build test compress
+	@set -e
 	@printf "\n"
 	serverless deploy --verbose  --aws-profile ${AWS_DEFAULT_PROFILE}
 

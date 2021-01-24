@@ -68,11 +68,11 @@ func (app application) handler(event events.APIGatewayProxyRequest) (events.APIG
 
 	err = app.deleteRepo(e)
 	if err != nil {
-		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to delete repo %v, %v", e.RepoName, err), 404, err, headers)
+		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to delete repo %v, %v", e.RepoName, err), 404, err, headers, []string{})
 		return resp, nil
 	}
 
-	resp := util.GenerateResponseBody(fmt.Sprintf("Deleted repo %v successfully", e.RepoName), 200, err, headers)
+	resp := util.GenerateResponseBody(fmt.Sprintf("Deleted repo %v successfully", e.RepoName), 200, err, headers, []string{})
 	return resp, nil
 }
 

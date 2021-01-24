@@ -79,14 +79,14 @@ func (app application) handler(event events.APIGatewayProxyRequest) (events.APIG
 
 	output, err := app.listRepos(e)
 	if err != nil {
-		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to query repos belonging to %v, %v", e.RepoOwner, err), 404, err, headers)
+		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to query repos belonging to %v, %v", e.RepoOwner, err), 404, err, headers, []string{})
 		return resp, nil
 	}
 
 	reposList := []reposList{}
 	err = dynamodbattribute.UnmarshalListOfMaps(output.Items, &reposList)
 	if err != nil {
-		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to unmarshal DynamoDB resp, %v", err), 404, err, headers)
+		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to unmarshal DynamoDB resp, %v", err), 404, err, headers, []string{})
 		return resp, nil
 	}
 

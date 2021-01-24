@@ -1,11 +1,15 @@
 CreateRepo:
-  handler: bin/create_repo
+  handler: bin/functions/create_repo
   package:
-    artifact: archive/CreateRepo.zip
+    artifact: archive/functions/CreateRepo.zip
   events:
     - httpApi:
         path: /create/repo
         method: post
+        authorizer: cognitoAuthorizer
+    - httpApi:
+        path: /create/repo/{proxy+}
+        method: options
         authorizer: cognitoAuthorizer
   maximumRetryAttempts: 0
   environment:

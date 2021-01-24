@@ -1,11 +1,15 @@
 ListUsers:
-  handler: bin/list_users
+  handler: bin/functions/list_users
   package:
-    artifact: archive/ListUsers.zip
+    artifact: archive/functions/ListUsers.zip
   events:
     - httpApi:
-        method: GET
         path: /list/users
+        method: get
+        authorizer: cognitoAuthorizer
+    - httpApi:
+        path: /list/users/{proxy+}
+        method: options
         authorizer: cognitoAuthorizer
   maximumRetryAttempts: 0
   environment:

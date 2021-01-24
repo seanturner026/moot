@@ -10,12 +10,15 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 )
 
-type responseBody struct {
-	Message string `json:"message"`
+// ResponseBody is contains the response sent to the client
+type ResponseBody struct {
+	Headers map[string]string `json:"headers,omitempty"`
+	Message string            `json:"message,omitempty"`
+	Cookies []string          `json:"cookies,omitempty"`
 }
 
 // GenerateResponseBody creates the response sent back to the client depending on the error message and error type
-func GenerateResponseBody(message string, statusCode int, err error, headers map[string]string) events.APIGatewayV2HTTPResponse {
+func GenerateResponseBody(message string, statusCode int, err error, headers map[string]string, cookies []string) events.APIGatewayV2HTTPResponse {
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			message = fmt.Sprintf("%v, %v", message, aerr.Error())
@@ -24,9 +27,12 @@ func GenerateResponseBody(message string, statusCode int, err error, headers map
 		}
 	}
 
-	body, marshalErr := json.Marshal(responseBody{Message: message})
+	body, marshalErr := json.Marshal(ResponseBody{
+		Headers: headers,
+		Message: message,
+	})
 	if marshalErr != nil {
-		log.Printf("[ERROR] Unable to marshal json for response, %v", marshalErr)
+		log.Printf("[ERROR] Unable to marshal response, %v", marshalErr)
 		statusCode = 404
 	}
 
@@ -34,12 +40,11 @@ func GenerateResponseBody(message string, statusCode int, err error, headers map
 	json.HTMLEscape(&buf, body)
 	resp := events.APIGatewayV2HTTPResponse{
 		StatusCode:      statusCode,
+		Cookies:         cookies,
 		Headers:         headers,
 		Body:            buf.String(),
 		IsBase64Encoded: false,
 	}
-
-	log.Printf("[DEBUG] resp %+v", resp)
 
 	return resp
 }

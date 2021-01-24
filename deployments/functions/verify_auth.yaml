@@ -1,9 +1,0 @@
-VerifyAuth:
-  handler: bin/verify_auth
-  package:
-    artifact: archive/VerifyAuth.zip
-  events:
-    - httpApi:
-        path: /verify/auth
-        method: get
-        authorizer: cognitoAuthorizer
