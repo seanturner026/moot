@@ -1,11 +1,11 @@
 {
   "resource": "/",
-  "path": "/reset/user/password",
+  "path": "/repositories/create",
   "httpMethod": "POST",
   "requestContext": {
     "resourcePath": "/",
     "httpMethod": "POST",
-    "path": "/reset/user/password"
+    "path": "/repositories/create"
   },
   "headers": {},
   "multiValueHeaders": {},
@@ -13,6 +13,6 @@
   "multiValueQueryStringParameters": null,
   "pathParameters": null,
   "stageVariables": null,
-  "body": "{\"email_address\": \"string\",\"new_password\": \"string\",\"session_id\": \"string\"}",
+  "body": "{\"repo_name\": \"string\", \"repo_owner\": \"string\", \"branch_head\": \"string\", \"branch_base\": \"string\"}",
   "isBase64Encoded": false
 }

@@ -1,14 +1,14 @@
-ListUsers:
-  handler: bin/functions/list_users
+DeleteUser:
+  handler: bin/functions/users_delete
   package:
-    artifact: archive/functions/ListUsers.zip
+    artifact: archive/functions/UsersDelete.zip
   events:
     - httpApi:
-        path: /list/users
-        method: get
+        path: /users/delete
+        method: post
         authorizer: cognitoAuthorizer
     - httpApi:
-        path: /list/users/{proxy+}
+        path: /users/delete/{proxy+}
         method: options
         authorizer: cognitoAuthorizer
   maximumRetryAttempts: 0

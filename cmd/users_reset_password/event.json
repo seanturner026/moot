@@ -1,11 +1,11 @@
 {
   "resource": "/",
-  "path": "/delete/repo",
+  "path": "/users/reset/password",
   "httpMethod": "POST",
   "requestContext": {
     "resourcePath": "/",
     "httpMethod": "POST",
-    "path": "/delete/repo"
+    "path": "/users/reset/password"
   },
   "headers": {},
   "multiValueHeaders": {},
@@ -13,6 +13,6 @@
   "multiValueQueryStringParameters": null,
   "pathParameters": null,
   "stageVariables": null,
-  "body": "{\"repo_name\": \"string\"}",
+  "body": "{\"email_address\": \"string\",\"new_password\": \"string\",\"session_id\": \"string\"}",
   "isBase64Encoded": false
 }

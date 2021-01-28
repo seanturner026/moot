@@ -1,0 +1,38 @@
+[
+  {
+    "resource": "/",
+    "path": "/users/login",
+    "httpMethod": "POST",
+    "requestContext": {
+      "resourcePath": "/",
+      "httpMethod": "POST",
+      "path": "/users/login"
+    },
+    "headers": {},
+    "multiValueHeaders": {},
+    "queryStringParameters": null,
+    "multiValueQueryStringParameters": null,
+    "pathParameters": null,
+    "stageVariables": null,
+    "body": "{ \"email_address\": \"string\",\"password\": \"string\"}",
+    "isBase64Encoded": false
+  },
+  {
+    "resource": "/",
+    "path": "/users/refresh/token",
+    "httpMethod": "POST",
+    "requestContext": {
+      "resourcePath": "/",
+      "httpMethod": "POST",
+      "path": "/users/refresh/token"
+    },
+    "headers": {},
+    "multiValueHeaders": {},
+    "queryStringParameters": null,
+    "multiValueQueryStringParameters": null,
+    "pathParameters": null,
+    "stageVariables": null,
+    "body": "{ \"email_address\": \"string\",\"refresh_token\": \"string\"}",
+    "isBase64Encoded": false
+  }
+]

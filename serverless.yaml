@@ -61,7 +61,7 @@ provider:
         - !GetAtt CognitoUserPool.Arn
     - Effect: Allow
       Action:
-        - dynamodb:DeleteItem
+        - dynamodb:BatchWriteItem
         - dynamodb:GetItem
         - dynamodb:PutItem
         - dynamodb:Query
@@ -71,15 +71,15 @@ provider:
         - !Sub ${DynamoDBTable.Arn}/index/repo
 
 functions:
-  - ${file(deployments/functions/create_repo.yaml)}
-  - ${file(deployments/functions/create_user.yaml)}
-  - ${file(deployments/functions/delete_repo.yaml)}
-  - ${file(deployments/functions/delete_user.yaml)}
-  - ${file(deployments/functions/list_repos.yaml)}
-  - ${file(deployments/functions/list_users.yaml)}
-  - ${file(deployments/functions/login_user.yaml)}
-  - ${file(deployments/functions/release.yaml)}
-  - ${file(deployments/functions/reset_user_password.yaml)}
+  - ${file(deployments/functions/releases_create.yaml)}
+  - ${file(deployments/functions/repositories_create.yaml)}
+  - ${file(deployments/functions/repositories_delete.yaml)}
+  - ${file(deployments/functions/repositories_list.yaml)}
+  - ${file(deployments/functions/users_create.yaml)}
+  - ${file(deployments/functions/users_delete.yaml)}
+  - ${file(deployments/functions/users_list.yaml)}
+  - ${file(deployments/functions/users_login.yaml)}
+  - ${file(deployments/functions/users_reset_password.yaml)}
 
   - ${file(deployments/custom_resources/custom_resources.yaml)}
 

@@ -36,12 +36,13 @@ func TestLoginUser(t *testing.T) {
 			idp:          idpMock,
 		}}
 
-		event := loginUserEvent{
+		event := userAuthEvent{
 			EmailAddress: "user@example.com",
 			Password:     "example123$%^",
 		}
 
-		_, err := app.loginUser(event, "secretHashExample")
+		input := app.generateAuthInput(event, "/login/user", "example_secret_hash")
+		_, err := app.loginUser(event, input)
 		if err != nil {
 			t.Fatal("User should have been logged in")
 		}
@@ -67,12 +68,45 @@ func TestLoginUser(t *testing.T) {
 			idp:          idpMock,
 		}}
 
-		event := loginUserEvent{
+		event := userAuthEvent{
 			EmailAddress: "user@example.com",
 			Password:     "example123$%^",
 		}
 
-		_, err := app.loginUser(event, "secretHashExample")
+		input := app.generateAuthInput(event, "/login/user", "example_secret_hash")
+		_, err := app.loginUser(event, input)
+		if err != nil {
+			t.Fatal("User should have been logged in")
+		}
+	})
+
+	t.Run("Successfully refreshed user token", func(t *testing.T) {
+
+		idpMock := mockInitiateAuth{
+			Response: &cidp.InitiateAuthOutput{
+				ChallengeName: nil,
+				AuthenticationResult: &cidp.AuthenticationResultType{
+					AccessToken:  aws.String("test"),
+					RefreshToken: aws.String("test"),
+					ExpiresIn:    aws.Int64(1),
+				},
+			},
+			Error: nil,
+		}
+
+		app := application{config: configuration{
+			ClientPoolID: "test",
+			UserPoolID:   "test",
+			idp:          idpMock,
+		}}
+
+		event := userAuthEvent{
+			EmailAddress: "user@example.com",
+			Password:     "example123$%^",
+		}
+
+		input := app.generateAuthInput(event, "/refresh/token", "example_secret_hash")
+		_, err := app.loginUser(event, input)
 		if err != nil {
 			t.Fatal("User should have been logged in")
 		}

@@ -1,17 +1,16 @@
-ListRepos:
-  handler: bin/functions/list_repos
+DeleteRepo:
+  handler: bin/functions/repositories_delete
   package:
-    artifact: archive/functions/ListRepos.zip
+    artifact: archive/functions/RepositoriesDelete.zip
   events:
     - httpApi:
-        path: /list/repos
+        path: /repositories/delete
         method: post
         authorizer: cognitoAuthorizer
     - httpApi:
-        path: /list/repos/{proxy+}
+        path: /repositories/delete/{proxy+}
         method: options
         authorizer: cognitoAuthorizer
   maximumRetryAttempts: 0
   environment:
-    GLOBAL_SECONDARY_INDEX_NAME: repo
     TABLE_NAME: ${self:service}-${self:provider.stage}

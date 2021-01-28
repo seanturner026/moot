@@ -1,16 +1,17 @@
-DeleteUser:
-  handler: bin/functions/delete_user
+CreateUser:
+  handler: bin/functions/users_create
   package:
-    artifact: archive/functions/DeleteUser.zip
+    artifact: archive/functions/UsersCreate.zip
   events:
     - httpApi:
-        path: /delete/user
+        path: /users/create
         method: post
         authorizer: cognitoAuthorizer
     - httpApi:
-        path: /delete/user/{proxy+}
+        path: /users/create/{proxy+}
         method: options
         authorizer: cognitoAuthorizer
   maximumRetryAttempts: 0
   environment:
+    REGION: ${self:provider.region}
     USER_POOL_ID: !Ref CognitoUserPool

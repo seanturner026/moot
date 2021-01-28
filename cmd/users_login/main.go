@@ -17,9 +17,10 @@ import (
 	util "github.com/seanturner026/serverless-release-dashboard/internal/util"
 )
 
-type loginUserEvent struct {
+type userAuthEvent struct {
 	EmailAddress string `json:"email_address"`
-	Password     string `json:"password"`
+	Password     string `json:"password,omitempty"`
+	RefreshToken string `json:"refresh_token,omitempty"`
 }
 
 type application struct {
@@ -33,7 +34,7 @@ type configuration struct {
 	idp              cidpif.CognitoIdentityProviderAPI
 }
 
-type loginUserResponse struct {
+type userAuthResponse struct {
 	AccessToken         string    `json:"access_token,omitempty"`
 	RefreshToken        string    `json:"refresh_token,omitempty"`
 	ExpiresAt           time.Time `json:"expires_at,omitempty"`
@@ -42,18 +43,31 @@ type loginUserResponse struct {
 	UserID              string `json:"user_id,omitempty"`
 }
 
-func (app application) loginUser(e loginUserEvent, secretHash string) (loginUserResponse, error) {
-	input := &cidp.InitiateAuthInput{
-		AuthFlow: aws.String("USER_PASSWORD_AUTH"),
-		AuthParameters: map[string]*string{
+func (app application) generateAuthInput(e userAuthEvent, path string, secretHash string) *cidp.InitiateAuthInput {
+	input := &cidp.InitiateAuthInput{}
+	input.ClientId = aws.String(app.config.ClientPoolID)
+	if path == "/users/login" {
+		input.AuthFlow = aws.String("USER_PASSWORD_AUTH")
+		input.AuthParameters = map[string]*string{
 			"USERNAME":    aws.String(e.EmailAddress),
 			"PASSWORD":    aws.String(e.Password),
 			"SECRET_HASH": aws.String(secretHash),
-		},
-		ClientId: aws.String(app.config.ClientPoolID),
-	}
+		}
 
-	loginUserResp := loginUserResponse{}
+	} else if path == "/users/refresh/token" {
+		input.AuthFlow = aws.String("REFRESH_TOKEN_AUTH")
+		input.AuthParameters = map[string]*string{
+			"REFRESH_TOKEN": aws.String(e.RefreshToken),
+			"SECRET_HASH":   aws.String(secretHash),
+		}
+	} else {
+		log.Printf("[ERROR] path %v does not exist", path)
+	}
+	return input
+}
+
+func (app application) loginUser(e userAuthEvent, input *cidp.InitiateAuthInput) (userAuthResponse, error) {
+	loginUserResp := userAuthResponse{}
 	resp, err := app.config.idp.InitiateAuth(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
@@ -86,22 +100,23 @@ func (app application) loginUser(e loginUserEvent, secretHash string) (loginUser
 func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
 	headers := map[string]string{"Content-Type": "application/json"}
 
-	e := loginUserEvent{}
+	e := userAuthEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
 	if err != nil {
 		log.Printf("[ERROR] %v", err)
 	}
 
 	secretHash := util.GenerateSecretHash(app.config.ClientPoolSecret, e.EmailAddress, app.config.ClientPoolID)
-	loginUserResp, err := app.loginUser(e, secretHash)
+	input := app.generateAuthInput(e, event.RawPath, secretHash)
+	loginUserResp, err := app.loginUser(e, input)
 	if err != nil {
-		resp := util.GenerateResponseBody(fmt.Sprintf("Error logging user %v in", e.EmailAddress), 404, err, headers, []string{})
+		resp := util.GenerateResponseBody(fmt.Sprintf("Error authorizing user %v in", e.EmailAddress), 404, err, headers, []string{})
 		return resp, nil
 
 	} else if loginUserResp.NewPasswordRequired {
 		headers["X-Session-Id"] = loginUserResp.SessionID
 		resp := util.GenerateResponseBody(
-			fmt.Sprintf("User %v logged in successfully, password change required", e.EmailAddress), 200, err, headers, []string{},
+			fmt.Sprintf("User %v authorized successfully, password change required", e.EmailAddress), 200, err, headers, []string{},
 		)
 		return resp, nil
 	}
@@ -112,7 +127,7 @@ func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.API
 	// }
 	headers["Authorization"] = fmt.Sprintf("Bearer %v", loginUserResp.AccessToken)
 	headers["X-Refresh-Token"] = loginUserResp.RefreshToken
-	resp := util.GenerateResponseBody(fmt.Sprintf("User %v logged in successfully", e.EmailAddress), 200, err, headers, []string{})
+	resp := util.GenerateResponseBody(fmt.Sprintf("User %v authorized successfully", e.EmailAddress), 200, err, headers, []string{})
 	return resp, nil
 }
 

@@ -115,7 +115,9 @@ func handler(event events.APIGatewayProxyRequest) (events.APIGatewayV2HTTPRespon
 	if err != nil {
 		log.Printf("[ERROR] %v", err)
 	}
-	e.ReleaseBody = fmt.Sprintf("%v%v%v", "```", e.ReleaseBody, "```")
+	// if e.ReleaseBody == "" {
+	// 	e.ReleaseBody = fmt.Sprintf("%v%v%v", "```", e.ReleaseBody, "```")
+	// }
 
 	prResp, err := createPullRequest(githubCtx, clientGithub, e)
 	if err != nil {

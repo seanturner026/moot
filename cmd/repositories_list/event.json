@@ -1,11 +1,11 @@
 {
   "resource": "/",
-  "path": "/delete/user",
-  "httpMethod": "POST",
+  "path": "/repositories/list",
+  "httpMethod": "GET",
   "requestContext": {
     "resourcePath": "/",
-    "httpMethod": "POST",
-    "path": "/delete/user"
+    "httpMethod": "GET",
+    "path": "/repositories/list"
   },
   "headers": {},
   "multiValueHeaders": {},
@@ -13,6 +13,6 @@
   "multiValueQueryStringParameters": null,
   "pathParameters": null,
   "stageVariables": null,
-  "body": "{\"email_address\": \"string\"}",
+  "body": "{\"repo_owner\": \"string\"}",
   "isBase64Encoded": false
 }

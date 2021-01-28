@@ -1,11 +1,11 @@
 {
   "resource": "/",
-  "path": "/release",
+  "path": "/users/create",
   "httpMethod": "POST",
   "requestContext": {
     "resourcePath": "/",
     "httpMethod": "POST",
-    "path": "/release"
+    "path": "/users/create"
   },
   "headers": {},
   "multiValueHeaders": {},
@@ -13,6 +13,6 @@
   "multiValueQueryStringParameters": null,
   "pathParameters": null,
   "stageVariables": null,
-  "body": "{\"github_owner\": \"string\", \"github_repo\": \"string\", \"branch_head\": \"string\", \"branch_base\": \"string\", \"release_version\": \"string\", \"release_body\": \"string\"}",
+  "body": "{\"email_address\": \"string\"}",
   "isBase64Encoded": false
 }

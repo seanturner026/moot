@@ -1,16 +1,17 @@
-CreateRepo:
-  handler: bin/functions/create_repo
+ListRepos:
+  handler: bin/functions/repositories_list
   package:
-    artifact: archive/functions/CreateRepo.zip
+    artifact: archive/functions/RepositoriesList.zip
   events:
     - httpApi:
-        path: /create/repo
+        path: /repositories/list
         method: post
         authorizer: cognitoAuthorizer
     - httpApi:
-        path: /create/repo/{proxy+}
+        path: /repositories/list/{proxy+}
         method: options
         authorizer: cognitoAuthorizer
   maximumRetryAttempts: 0
   environment:
+    GLOBAL_SECONDARY_INDEX_NAME: repo
     TABLE_NAME: ${self:service}-${self:provider.stage}

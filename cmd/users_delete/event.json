@@ -1,11 +1,11 @@
 {
   "resource": "/",
-  "path": "/create/user",
+  "path": "/users/delete",
   "httpMethod": "POST",
   "requestContext": {
     "resourcePath": "/",
     "httpMethod": "POST",
-    "path": "/create/user"
+    "path": "/users/delete"
   },
   "headers": {},
   "multiValueHeaders": {},
