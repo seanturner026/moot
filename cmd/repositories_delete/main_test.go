@@ -30,7 +30,9 @@ func TestStageBatchWrites(t *testing.T) {
 			db:        dbMock,
 		}}
 
-		event := deleteRepositoriesEvent{Repositories: []string{"test"}}
+		event := deleteRepositoriesEvent{Repositories: []repository{
+			{RepoName: "test", RepoOwner: "test"},
+		}}
 
 		err := app.stageBatchWrites(event)
 		if err != nil {

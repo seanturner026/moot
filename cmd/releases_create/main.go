@@ -9,6 +9,11 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/google/go-github/github"
 	util "github.com/seanturner026/serverless-release-dashboard/internal/util"
 	"golang.org/x/oauth2"
@@ -22,6 +27,15 @@ type releaseEvent struct {
 	BranchHead     string `json:"branch_head"`
 	ReleaseBody    string `json:"release_body"`
 	ReleaseVersion string `json:"release_version"`
+}
+
+type application struct {
+	config configuration
+}
+
+type configuration struct {
+	TableName string
+	db        dynamodbiface.DynamoDBAPI
 }
 
 var (
@@ -106,8 +120,34 @@ func createRelease(githubCtx context.Context, c *github.Client, e releaseEvent) 
 	return nil
 }
 
+func (app application) updateLatestVersion(e releaseEvent) error {
+	input := &dynamodb.UpdateItemInput{
+		Key: map[string]*dynamodb.AttributeValue{
+			"pk": {
+				S: aws.String(e.GithubRepo),
+			},
+			"sk": {
+				S: aws.String(fmt.Sprintf("repo#%v", e.GithubOwner)),
+			},
+		},
+		TableName:        aws.String(app.config.TableName),
+		UpdateExpression: aws.String(fmt.Sprintf("SET latest_version = %v", e.ReleaseVersion)),
+	}
+
+	_, err := app.config.db.UpdateItem(input)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			log.Printf("[ERROR] %v", aerr.Error())
+		} else {
+			log.Printf("[ERROR] %v", err.Error())
+		}
+		return err
+	}
+	return nil
+}
+
 // handler executes the release and notification workflow
-func handler(event events.APIGatewayProxyRequest) (events.APIGatewayV2HTTPResponse, error) {
+func (app application) handler(event events.APIGatewayProxyRequest) (events.APIGatewayV2HTTPResponse, error) {
 	headers := map[string]string{"Content-Type": "application/json"}
 
 	e := releaseEvent{}
@@ -165,17 +205,30 @@ func handler(event events.APIGatewayProxyRequest) (events.APIGatewayV2HTTPRespon
 		return resp, nil
 	}
 
-	util.PostToSlack(os.Getenv("WEBHOOK_URL"), fmt.Sprintf(
+	util.PostToSlack(os.Getenv("SLACK_WEBHOOK_URL"), fmt.Sprintf(
 		"Starting release for %v version %v...\n\n%v",
 		e.GithubRepo,
 		e.ReleaseVersion,
 		e.ReleaseBody,
 	))
 
+	err = app.updateLatestVersion(e)
+	if err != nil {
+		message := fmt.Sprintf("Released %v version %v successfully, unable to update latest version in backend", e.GithubRepo, e.ReleaseVersion)
+		resp := util.GenerateResponseBody(message, 200, err, headers, []string{})
+		return resp, nil
+	}
+
 	resp := util.GenerateResponseBody(fmt.Sprintf("Released %v version %v successfully,", e.GithubRepo, e.ReleaseVersion), 200, nil, headers, []string{})
 	return resp, nil
 }
 
 func main() {
-	lambda.Start(handler)
+	config := configuration{
+		TableName: os.Getenv("TABLE_NAME"),
+		db:        dynamodb.New(session.Must(session.NewSession())),
+	}
+
+	app := application{config: config}
+	lambda.Start(app.handler)
 }

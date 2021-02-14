@@ -33,25 +33,6 @@ type configuration struct {
 	idp              cidpif.CognitoIdentityProviderAPI
 }
 
-func (app application) getUserPoolClientSecret() (string, error) {
-	input := &cidp.DescribeUserPoolClientInput{
-		UserPoolId: aws.String(app.config.UserPoolID),
-		ClientId:   aws.String(app.config.ClientPoolID),
-	}
-
-	resp, err := app.config.idp.DescribeUserPoolClient(input)
-	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			log.Printf("[ERROR] %v", aerr.Error())
-		} else {
-			log.Printf("[ERROR] %v", err.Error())
-		}
-		return "", err
-	}
-	log.Println("[INFO] Obtained user pool client secret successfully")
-	return *resp.UserPoolClient.ClientSecret, nil
-}
-
 func (app application) resetPassword(e resetPasswordEvent, secretHash string) (string, error) {
 	input := &cidp.AdminRespondToAuthChallengeInput{
 		ChallengeName: aws.String("NEW_PASSWORD_REQUIRED"),

@@ -18,11 +18,11 @@ import (
 )
 
 type createRepoEvent struct {
-	RepoOwner  string `dynamodbav:"repo_owner" json:"repo_owner"`
-	RepoName   string `dynamodbav:"pk" json:"repo_name"`
-	Type       string `dynamodbav:"sk"`
-	BranchBase string `dynamodbav:"branch_base" json:"branch_base"`
-	BranchHead string `dynamodbav:"branch_head" json:"branch_head"`
+	RepoName     string `dynamodbav:"PK" json:"repo_name"`
+	RepoProvider string `dynamodbav:"RepoProvider" json:"repo_provider"`
+	RepoOwner    string `dynamodbav:"SK" json:"repo_owner"`
+	BranchBase   string `dynamodbav:"BranchBase" json:"branch_base"`
+	BranchHead   string `dynamodbav:"BranchHead" json:"branch_head"`
 }
 
 type application struct {
@@ -35,8 +35,9 @@ type configuration struct {
 }
 
 func generatePutItemInput(e createRepoEvent) (createRepoEvent, map[string]*dynamodb.AttributeValue, error) {
-	e.Type = "repo"
+	e.RepoOwner = fmt.Sprintf("repo#%v", e.RepoOwner)
 	itemInput, err := dynamodbattribute.MarshalMap(e)
+	log.Printf("[DEBUG] itemInput %+v", itemInput)
 	if err != nil {
 		return e, map[string]*dynamodb.AttributeValue{}, err
 	}

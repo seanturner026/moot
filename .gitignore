@@ -1,26 +1,17 @@
-# Serverless directories
-.serverless
-
 # golang output binary directory
 archive
 bin
 
-# golang vendor (dependencies) directory
-vendor
+*.DS_Store
+**/.vscode/*
 
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-
-# Test binary, build with `go test -c`
-*.test
-
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
-
-.env.*
-.DS_Store
-.vscode
+# terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.auto.tfvars
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json

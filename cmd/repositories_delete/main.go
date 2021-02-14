@@ -17,7 +17,12 @@ import (
 )
 
 type deleteRepositoriesEvent struct {
-	Repositories []string `json:"repositories"`
+	Repositories []repository `json:"repositories"`
+}
+
+type repository struct {
+	RepoName  string `dynamodbav:"PK" json:"repo_name"`
+	RepoOwner string `dynamodbav:"SK" json:"repo_owner"`
 }
 
 type application struct {
@@ -39,11 +44,11 @@ func (app application) stageBatchWrites(e deleteRepositoriesEvent) error {
 		deleteRequest := &dynamodb.WriteRequest{
 			DeleteRequest: &dynamodb.DeleteRequest{
 				Key: map[string]*dynamodb.AttributeValue{
-					"pk": {
-						S: aws.String(r),
+					"PK": {
+						S: aws.String(r.RepoName),
 					},
-					"sk": {
-						S: aws.String("repo"),
+					"SK": {
+						S: aws.String(fmt.Sprintf("repo#%v", r.RepoOwner)),
 					},
 				},
 			},
@@ -75,7 +80,7 @@ func (app application) deleteRepositories(requestItems []*dynamodb.WriteRequest)
 	}
 
 	if len(resp.UnprocessedItems) != 0 {
-		// NOTE(SMT): need to implement with exponential backup
+		// NOTE(SMT): need to implement
 		log.Printf("[ERROR] IDs %v not deleted, retrying", resp.UnprocessedItems)
 	}
 

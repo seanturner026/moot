@@ -23,10 +23,11 @@ type listReposEvent struct {
 }
 
 type reposList struct {
-	RepoOwner  string `dynamodbav:"repo_owner" json:"repo_owner"`
-	RepoName   string `dynamodbav:"pk" json:"repo_name"`
-	BranchBase string `dynamodbav:"branch_base" json:"branch_base"`
-	BranchHead string `dynamodbav:"branch_head" json:"branch_head"`
+	RepoOwner    string `dynamodbav:"SK" json:"repo_owner"`
+	RepoName     string `dynamodbav:"PK" json:"repo_name"`
+	RepoProvider string `dynamodbav:"RepoProvider" json:"repo_provider"`
+	BranchBase   string `dynamodbav:"BranchBase" json:"branch_base"`
+	BranchHead   string `dynamodbav:"BranchHead" json:"branch_head"`
 }
 
 type application struct {
@@ -42,15 +43,16 @@ type configuration struct {
 func (app application) listRepos(e listReposEvent) (dynamodb.QueryOutput, error) {
 	input := &dynamodb.QueryInput{
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":type": {
-				S: aws.String("repo"),
+			":sort_key": {
+				S: aws.String("repo#" + e.RepoOwner),
 			},
-			":repo_owner": {
-				S: aws.String(e.RepoOwner),
-			},
+			// ":repo_provider": {
+			// 	// NOTE(SMT): This is poorly implemented
+			// 	S: aws.String("github.com"), // e.RepoProvider
+			// },
 		},
 		IndexName:              aws.String(app.config.GlobalSecondaryIndexName),
-		KeyConditionExpression: aws.String("sk = :type AND repo_owner = :repo_owner"),
+		KeyConditionExpression: aws.String("SK = :sort_key"), //AND repo_provider = :repo_provider"),
 		Select:                 aws.String("ALL_ATTRIBUTES"),
 		TableName:              aws.String(app.config.TableName),
 	}
