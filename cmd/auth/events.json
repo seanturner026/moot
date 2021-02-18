@@ -34,5 +34,23 @@
     "stageVariables": null,
     "body": "{ \"email_address\": \"string\",\"refresh_token\": \"string\"}",
     "isBase64Encoded": false
+  },
+  {
+    "resource": "/",
+    "path": "/users/reset/password",
+    "httpMethod": "POST",
+    "requestContext": {
+      "resourcePath": "/",
+      "httpMethod": "POST",
+      "path": "/users/reset/password"
+    },
+    "headers": {},
+    "multiValueHeaders": {},
+    "queryStringParameters": null,
+    "multiValueQueryStringParameters": null,
+    "pathParameters": null,
+    "stageVariables": null,
+    "body": "{\"email_address\": \"string\",\"new_password\": \"string\",\"session_id\": \"string\"}",
+    "isBase64Encoded": false
   }
 ]

@@ -7,12 +7,9 @@ import (
 	"os"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/seanturner026/serverless-release-dashboard/internal/util"
 )
 
@@ -23,15 +20,6 @@ type deleteRepositoriesEvent struct {
 type repository struct {
 	RepoName  string `dynamodbav:"PK" json:"repo_name"`
 	RepoOwner string `dynamodbav:"SK" json:"repo_owner"`
-}
-
-type application struct {
-	config configuration
-}
-
-type configuration struct {
-	TableName string
-	db        dynamodbiface.DynamoDBAPI
 }
 
 func (app application) stageBatchWrites(e deleteRepositoriesEvent) error {
@@ -87,9 +75,7 @@ func (app application) deleteRepositories(requestItems []*dynamodb.WriteRequest)
 	return nil
 }
 
-func (app application) handler(event events.APIGatewayProxyRequest) (events.APIGatewayV2HTTPResponse, error) {
-	headers := map[string]string{"Content-Type": "application/json"}
-
+func (app application) repositoriesDeleteHandler(event events.APIGatewayV2HTTPRequest, headers map[string]string) events.APIGatewayV2HTTPResponse {
 	e := deleteRepositoriesEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
 	if err != nil {
@@ -99,19 +85,9 @@ func (app application) handler(event events.APIGatewayProxyRequest) (events.APIG
 	err = app.stageBatchWrites(e)
 	if err != nil {
 		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to delete repos %v, %v", e, err), 404, err, headers, []string{})
-		return resp, nil
+		return resp
 	}
 
 	resp := util.GenerateResponseBody(fmt.Sprintf("Deleted repos %v successfully", e), 200, err, headers, []string{})
-	return resp, nil
-}
-
-func main() {
-	config := configuration{
-		TableName: os.Getenv("TABLE_NAME"),
-		db:        dynamodb.New(session.Must(session.NewSession())),
-	}
-
-	app := application{config: config}
-	lambda.Start(app.handler)
+	return resp
 }

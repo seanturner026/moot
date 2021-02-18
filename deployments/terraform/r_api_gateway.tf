@@ -6,7 +6,7 @@ resource "aws_apigatewayv2_api" "this" {
   cors_configuration {
     allow_credentials = true
     allow_headers     = ["Content-Type", "Authorization", "X-Session-Id"]
-    allow_methods     = ["GET", "OPTIONS", "POST", ]
+    allow_methods     = ["GET", "OPTIONS", "POST"]
     allow_origins     = ["http://localhost:8080"]
     max_age           = 600
   }
@@ -18,7 +18,13 @@ resource "aws_apigatewayv2_stage" "this" {
   name        = "$default"
   api_id      = aws_apigatewayv2_api.this.id
   auto_deploy = true
-  tags        = var.tags
+
+  access_log_settings {
+    destination_arn = aws_cloudwatch_log_group.this["api_gateway"].arn
+    format          = "$context.extendedRequestId : JSON"
+  }
+
+  tags = var.tags
 }
 
 resource "aws_apigatewayv2_authorizer" "this" {

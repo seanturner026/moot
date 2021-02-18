@@ -4,16 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
 	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
-	cidpif "github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
 	util "github.com/seanturner026/serverless-release-dashboard/internal/util"
 )
 
@@ -21,17 +17,6 @@ type userAuthEvent struct {
 	EmailAddress string `json:"email_address"`
 	Password     string `json:"password,omitempty"`
 	RefreshToken string `json:"refresh_token,omitempty"`
-}
-
-type application struct {
-	config configuration
-}
-
-type configuration struct {
-	ClientPoolID     string
-	UserPoolID       string
-	ClientPoolSecret string
-	idp              cidpif.CognitoIdentityProviderAPI
 }
 
 type userAuthResponse struct {
@@ -54,14 +39,12 @@ func (app application) generateAuthInput(e userAuthEvent, path string, secretHas
 			"SECRET_HASH": aws.String(secretHash),
 		}
 
-	} else if path == "/users/refresh/token" {
+	} else {
 		input.AuthFlow = aws.String("REFRESH_TOKEN_AUTH")
 		input.AuthParameters = map[string]*string{
 			"REFRESH_TOKEN": aws.String(e.RefreshToken),
 			"SECRET_HASH":   aws.String(secretHash),
 		}
-	} else {
-		log.Printf("[ERROR] path %v does not exist", path)
 	}
 	return input
 }
@@ -86,7 +69,6 @@ func (app application) loginUser(e userAuthEvent, input *cidp.InitiateAuthInput)
 		loginUserResp.UserID = *resp.ChallengeParameters["USER_ID_FOR_SRP"]
 		return loginUserResp, nil
 	}
-
 	log.Printf("[INFO] Authenticated user %v successfully", e.EmailAddress)
 
 	now := time.Now()
@@ -97,9 +79,7 @@ func (app application) loginUser(e userAuthEvent, input *cidp.InitiateAuthInput)
 	return loginUserResp, nil
 }
 
-func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
-	headers := map[string]string{"Content-Type": "application/json"}
-
+func (app application) usersLoginHandler(event events.APIGatewayV2HTTPRequest, headers map[string]string) events.APIGatewayV2HTTPResponse {
 	e := userAuthEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
 	if err != nil {
@@ -111,14 +91,14 @@ func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.API
 	loginUserResp, err := app.loginUser(e, input)
 	if err != nil {
 		resp := util.GenerateResponseBody(fmt.Sprintf("Error authorizing user %v in", e.EmailAddress), 404, err, headers, []string{})
-		return resp, nil
+		return resp
 
 	} else if loginUserResp.NewPasswordRequired {
 		headers["X-Session-Id"] = loginUserResp.SessionID
 		resp := util.GenerateResponseBody(
 			fmt.Sprintf("User %v authorized successfully, password change required", e.EmailAddress), 200, err, headers, []string{},
 		)
-		return resp, nil
+		return resp
 	}
 
 	// cookies := []string{
@@ -128,18 +108,5 @@ func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.API
 	headers["Authorization"] = fmt.Sprintf("Bearer %v", loginUserResp.AccessToken)
 	headers["X-Refresh-Token"] = loginUserResp.RefreshToken
 	resp := util.GenerateResponseBody(fmt.Sprintf("User %v authorized successfully", e.EmailAddress), 200, err, headers, []string{})
-	return resp, nil
-}
-
-func main() {
-	config := configuration{
-		ClientPoolID:     os.Getenv("CLIENT_POOL_ID"),
-		UserPoolID:       os.Getenv("USER_POOL_ID"),
-		ClientPoolSecret: os.Getenv("CLIENT_POOL_SECRET"),
-		idp:              cidp.New(session.Must(session.NewSession())),
-	}
-
-	app := application{config: config}
-
-	lambda.Start(app.handler)
+	return resp
 }

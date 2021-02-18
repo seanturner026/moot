@@ -21,7 +21,7 @@ resource "aws_cognito_user_pool_client" "this" {
   generate_secret                      = true
   allowed_oauth_flows                  = ["implicit"]
   allowed_oauth_flows_user_pool_client = true
-  allowed_oauth_scopes                 = ["phone", "email", "openid", "profile", "aws.cognito.signin.user.admin"]
+  allowed_oauth_scopes                 = ["email", "openid"]
   explicit_auth_flows                  = ["ALLOW_USER_PASSWORD_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"]
   supported_identity_providers         = ["COGNITO"]
   callback_urls                        = ["https://localhost:3000"]

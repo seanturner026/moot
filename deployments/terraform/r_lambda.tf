@@ -2,11 +2,14 @@ resource "null_resource" "lambda_build" {
   for_each = local.lambdas
 
   triggers = {
+    binary_exists = fileexists("${local.path}/bin/${each.key}")
+
     main = concat([
-      for file in fileset("${path.root}/../../cmd/${each.key}", "*.go") : filebase64("${path.root}/../../cmd/${each.key}/${file}")
+      for file in fileset("${local.path}/cmd/${each.key}", "*.go") : filebase64("${local.path}/cmd/${each.key}/${file}")
     ])[0]
+
     util = concat([
-      for file in fileset("${path.root}/../../internal/util", "*.go") : filebase64("${path.root}/../../internal/util/${file}")
+      for file in fileset("${local.path}/internal/util", "*.go") : filebase64("${local.path}/internal/util/${file}")
     ])[0]
   }
 
@@ -15,7 +18,7 @@ resource "null_resource" "lambda_build" {
   }
 
   provisioner "local-exec" {
-    command = "GOOS=linux go build -ldflags '-s -w' -o ${path.root}/../../bin/${each.key} ${path.root}/../../cmd/${each.key}/main.go"
+    command = "GOOS=linux go build -ldflags '-s -w' -o ${local.path}/bin/${each.key} ${local.path}/cmd/${each.key}/."
   }
 }
 
@@ -24,24 +27,25 @@ resource "null_resource" "lambda_test" {
 
   triggers = {
     main = concat([
-      for file in fileset("${path.root}/../../cmd/${each.key}", "*.go") : filebase64("${path.root}/../../cmd/${each.key}/${file}")
+      for file in fileset("${local.path}/cmd/${each.key}", "*.go") : filebase64("${local.path}/cmd/${each.key}/${file}")
     ])[0]
+
     util = concat([
-      for file in fileset("${path.root}/../../internal/util", "*.go") : filebase64("${path.root}/../../internal/util/${file}")
+      for file in fileset("${local.path}/internal/util", "*.go") : filebase64("${local.path}/internal/util/${file}")
     ])[0]
   }
 
   provisioner "local-exec" {
-    command = "go test ${path.root}/../../cmd/${each.key}"
+    command = "go test ${local.path}/cmd/${each.key}"
   }
 }
 
 resource "aws_lambda_function" "this" {
-  depends_on = [null_resource.lambda_build, null_resource.lambda_test]
+  depends_on = [null_resource.lambda_build]
   for_each   = local.lambdas
 
-  filename         = "${path.root}/../../archive/${each.key}.zip"
-  function_name    = each.key
+  filename         = "${local.path}/archive/${each.key}.zip"
+  function_name    = "${var.tags.name}_${each.key}"
   description      = each.value.description
   role             = aws_iam_role.this[each.key].arn
   handler          = each.key
@@ -63,5 +67,5 @@ resource "aws_lambda_permission" "this" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.this[each.key].function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.this.execution_arn}/*/*/*"
+  source_arn    = "${aws_apigatewayv2_api.this.execution_arn}/*/*/${aws_lambda_function.this[each.key].function_name}"
 }

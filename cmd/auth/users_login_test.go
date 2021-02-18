@@ -41,7 +41,7 @@ func TestLoginUser(t *testing.T) {
 			Password:     "example123$%^",
 		}
 
-		input := app.generateAuthInput(event, "/login/user", "example_secret_hash")
+		input := app.generateAuthInput(event, "/login/user", "exampleSecretHash")
 		_, err := app.loginUser(event, input)
 		if err != nil {
 			t.Fatal("User should have been logged in")

@@ -4,15 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
 	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
-	cidpif "github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
 	util "github.com/seanturner026/serverless-release-dashboard/internal/util"
 )
 
@@ -20,17 +16,6 @@ type resetPasswordEvent struct {
 	EmailAddress string `json:"email_address"`
 	NewPassword  string `json:"new_password"`
 	SessionID    string `json:"session_id"`
-}
-
-type application struct {
-	config configuration
-}
-
-type configuration struct {
-	ClientPoolID     string
-	UserPoolID       string
-	ClientPoolSecret string
-	idp              cidpif.CognitoIdentityProviderAPI
 }
 
 func (app application) resetPassword(e resetPasswordEvent, secretHash string) (string, error) {
@@ -59,9 +44,7 @@ func (app application) resetPassword(e resetPasswordEvent, secretHash string) (s
 	return *resp.AuthenticationResult.AccessToken, nil
 }
 
-func (app application) handler(event events.APIGatewayProxyRequest) (events.APIGatewayV2HTTPResponse, error) {
-	headers := map[string]string{"Content-Type": "application/json"}
-
+func (app application) usersResetPasswordHandler(event events.APIGatewayV2HTTPRequest, headers map[string]string) events.APIGatewayV2HTTPResponse {
 	e := resetPasswordEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
 	if err != nil {
@@ -72,23 +55,10 @@ func (app application) handler(event events.APIGatewayProxyRequest) (events.APIG
 	AccessToken, err := app.resetPassword(e, secretHash)
 	if err != nil {
 		resp := util.GenerateResponseBody(fmt.Sprintf("Error changing user %v password", e.EmailAddress), 404, err, headers, []string{})
-		return resp, nil
+		return resp
 	}
 
 	headers["Authorization"] = fmt.Sprintf("Bearer %v", AccessToken)
 	resp := util.GenerateResponseBody(fmt.Sprintf("User %v changed password successfully", e.EmailAddress), 200, err, headers, []string{})
-	return resp, nil
-}
-
-func main() {
-	config := configuration{
-		ClientPoolID:     os.Getenv("CLIENT_POOL_ID"),
-		UserPoolID:       os.Getenv("USER_POOL_ID"),
-		ClientPoolSecret: os.Getenv("CLIENT_POOL_SECRET"),
-		idp:              cidp.New(session.Must(session.NewSession())),
-	}
-
-	app := application{config: config}
-
-	lambda.Start(app.handler)
+	return resp
 }

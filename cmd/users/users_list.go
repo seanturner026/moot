@@ -4,26 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"log"
-	"os"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
 	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
-	cidpif "github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
 	util "github.com/seanturner026/serverless-release-dashboard/internal/util"
 )
-
-type application struct {
-	config configuration
-}
-
-type configuration struct {
-	UserPoolID string
-	idp        cidpif.CognitoIdentityProviderAPI
-}
 
 type listUsersResponse struct {
 	Users []userName
@@ -33,11 +20,7 @@ type userName struct {
 	Name string `json:"name"`
 }
 
-func (userNames *listUsersResponse) appendUserToResponse(user userName) {
-	userNames.Users = append(userNames.Users, user)
-}
-
-func (app application) listUsers() (listUsersResponse, error) {
+func (app application) listUsers() (cidp.ListUsersOutput, error) {
 	input := &cidp.ListUsersInput{
 		AttributesToGet: aws.StringSlice([]string{"email"}),
 		Limit:           aws.Int64(60),
@@ -51,27 +34,35 @@ func (app application) listUsers() (listUsersResponse, error) {
 		} else {
 			log.Printf("[ERROR] %v", err.Error())
 		}
-		return listUsersResponse{}, err
+		return *resp, err
 	}
 
-	users := resp.Users
+	// NOTE(SMT): Need to implement pagination
+	return *resp, err
+}
+
+func generateListUsersResponse(users []*cidp.UserType) listUsersResponse {
 	userNames := &listUsersResponse{}
 	for _, user := range users {
 		userName := userName{Name: *user.Attributes[0].Value}
 		userNames.appendUserToResponse(userName)
 	}
-	return *userNames, nil
+	return *userNames
 }
 
-func (app application) handler() (events.APIGatewayV2HTTPResponse, error) {
-	headers := map[string]string{"Content-Type": "application/json"}
+func (userNames *listUsersResponse) appendUserToResponse(user userName) {
+	userNames.Users = append(userNames.Users, user)
+}
 
-	userNames, err := app.listUsers()
-	if err != nil || len(userNames.Users) == 0 {
+func (app application) usersListHandler(event events.APIGatewayV2HTTPRequest, headers map[string]string) events.APIGatewayV2HTTPResponse {
+
+	listUsersResp, err := app.listUsers()
+	if err != nil || len(listUsersResp.Users) == 0 {
 		resp := util.GenerateResponseBody("Unable to populate list of users", 404, err, headers, []string{})
-		return resp, nil
+		return resp
 	}
 
+	userNames := generateListUsersResponse(listUsersResp.Users)
 	body, err := json.Marshal(userNames.Users)
 	statusCode := 200
 	if err != nil {
@@ -81,22 +72,6 @@ func (app application) handler() (events.APIGatewayV2HTTPResponse, error) {
 
 	var buf bytes.Buffer
 	json.HTMLEscape(&buf, body)
-	resp := events.APIGatewayV2HTTPResponse{
-		StatusCode:      statusCode,
-		Headers:         headers,
-		Body:            buf.String(),
-		IsBase64Encoded: false,
-	}
-	return resp, nil
-}
-
-func main() {
-	config := configuration{
-		UserPoolID: os.Getenv("USER_POOL_ID"),
-		idp:        cidp.New(session.Must(session.NewSession())),
-	}
-
-	app := application{config: config}
-
-	lambda.Start(app.handler)
+	resp := util.GenerateResponseBody(buf.String(), statusCode, err, headers, []string{})
+	return resp
 }

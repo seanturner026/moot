@@ -5,16 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/seanturner026/serverless-release-dashboard/internal/util"
 )
 
@@ -28,16 +24,6 @@ type reposList struct {
 	RepoProvider string `dynamodbav:"RepoProvider" json:"repo_provider"`
 	BranchBase   string `dynamodbav:"BranchBase" json:"branch_base"`
 	BranchHead   string `dynamodbav:"BranchHead" json:"branch_head"`
-}
-
-type application struct {
-	config configuration
-}
-
-type configuration struct {
-	GlobalSecondaryIndexName string
-	TableName                string
-	db                       dynamodbiface.DynamoDBAPI
 }
 
 func (app application) listRepos(e listReposEvent) (dynamodb.QueryOutput, error) {
@@ -70,9 +56,7 @@ func (app application) listRepos(e listReposEvent) (dynamodb.QueryOutput, error)
 	return *resp, err
 }
 
-func (app application) handler(event events.APIGatewayProxyRequest) (events.APIGatewayV2HTTPResponse, error) {
-	headers := map[string]string{"Content-Type": "application/json"}
-
+func (app application) repositoriesListHandler(event events.APIGatewayV2HTTPRequest, headers map[string]string) events.APIGatewayV2HTTPResponse {
 	e := listReposEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
 	if err != nil {
@@ -82,14 +66,14 @@ func (app application) handler(event events.APIGatewayProxyRequest) (events.APIG
 	output, err := app.listRepos(e)
 	if err != nil {
 		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to query repos belonging to %v, %v", e.RepoOwner, err), 404, err, headers, []string{})
-		return resp, nil
+		return resp
 	}
 
 	reposList := []reposList{}
 	err = dynamodbattribute.UnmarshalListOfMaps(output.Items, &reposList)
 	if err != nil {
 		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to unmarshal DynamoDB resp, %v", err), 404, err, headers, []string{})
-		return resp, nil
+		return resp
 	}
 
 	body, err := json.Marshal(reposList)
@@ -108,16 +92,5 @@ func (app application) handler(event events.APIGatewayProxyRequest) (events.APIG
 		Body:            buf.String(),
 		IsBase64Encoded: false,
 	}
-	return resp, nil
-}
-
-func main() {
-	config := configuration{
-		GlobalSecondaryIndexName: os.Getenv("GLOBAL_SECONDARY_INDEX_NAME"),
-		TableName:                os.Getenv("TABLE_NAME"),
-		db:                       dynamodb.New(session.Must(session.NewSession())),
-	}
-
-	app := application{config: config}
-	lambda.Start(app.handler)
+	return resp
 }

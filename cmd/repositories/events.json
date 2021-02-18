@@ -1,0 +1,56 @@
+[
+  {
+    "resource": "/",
+    "path": "/repositories/create",
+    "httpMethod": "POST",
+    "requestContext": {
+      "resourcePath": "/",
+      "httpMethod": "POST",
+      "path": "/repositories/create"
+    },
+    "headers": {},
+    "multiValueHeaders": {},
+    "queryStringParameters": null,
+    "multiValueQueryStringParameters": null,
+    "pathParameters": null,
+    "stageVariables": null,
+    "body": "{\"repo_name\": \"string\", \"repo_owner\": \"string\", \"branch_head\": \"string\", \"branch_base\": \"string\"}",
+    "isBase64Encoded": false
+  },
+  {
+    "resource": "/",
+    "path": "/repositories/delete",
+    "httpMethod": "POST",
+    "requestContext": {
+      "resourcePath": "/",
+      "httpMethod": "POST",
+      "path": "/repositories/delete"
+    },
+    "headers": {},
+    "multiValueHeaders": {},
+    "queryStringParameters": null,
+    "multiValueQueryStringParameters": null,
+    "pathParameters": null,
+    "stageVariables": null,
+    "body": "{\"repositories\": [\"string\", \"string\"]}",
+    "isBase64Encoded": false
+  },
+  {
+    "resource": "/",
+    "path": "/repositories/list",
+    "httpMethod": "GET",
+    "requestContext": {
+      "resourcePath": "/",
+      "httpMethod": "GET",
+      "path": "/repositories/list"
+    },
+    "headers": {},
+    "multiValueHeaders": {},
+    "queryStringParameters": null,
+    "multiValueQueryStringParameters": null,
+    "pathParameters": null,
+    "stageVariables": null,
+    "body": "{\"repo_owner\": \"string\"}",
+    "isBase64Encoded": false
+  }
+]

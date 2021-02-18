@@ -120,18 +120,23 @@ func createRelease(githubCtx context.Context, c *github.Client, e releaseEvent) 
 	return nil
 }
 
-func (app application) updateLatestVersion(e releaseEvent) error {
+func (app application) updateCurrentVersion(e releaseEvent) error {
 	input := &dynamodb.UpdateItemInput{
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":cv": {
+				S: aws.String(e.ReleaseVersion),
+			},
+		},
 		Key: map[string]*dynamodb.AttributeValue{
-			"pk": {
+			"PK": {
 				S: aws.String(e.GithubRepo),
 			},
-			"sk": {
+			"SK": {
 				S: aws.String(fmt.Sprintf("repo#%v", e.GithubOwner)),
 			},
 		},
 		TableName:        aws.String(app.config.TableName),
-		UpdateExpression: aws.String(fmt.Sprintf("SET latest_version = %v", e.ReleaseVersion)),
+		UpdateExpression: aws.String("SET CurrentVersion = :cv"),
 	}
 
 	_, err := app.config.db.UpdateItem(input)
@@ -147,7 +152,7 @@ func (app application) updateLatestVersion(e releaseEvent) error {
 }
 
 // handler executes the release and notification workflow
-func (app application) handler(event events.APIGatewayProxyRequest) (events.APIGatewayV2HTTPResponse, error) {
+func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
 	headers := map[string]string{"Content-Type": "application/json"}
 
 	e := releaseEvent{}
@@ -212,7 +217,7 @@ func (app application) handler(event events.APIGatewayProxyRequest) (events.APIG
 		e.ReleaseBody,
 	))
 
-	err = app.updateLatestVersion(e)
+	err = app.updateCurrentVersion(e)
 	if err != nil {
 		message := fmt.Sprintf("Released %v version %v successfully, unable to update latest version in backend", e.GithubRepo, e.ReleaseVersion)
 		resp := util.GenerateResponseBody(message, 200, err, headers, []string{})

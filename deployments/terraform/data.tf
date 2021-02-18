@@ -5,8 +5,7 @@ data "null_data_source" "wait_for_lambda_build" {
 
   inputs = {
     lambda_build_id = null_resource.lambda_build[each.key].id
-    lambda_test_id  = null_resource.lambda_test[each.key].id
-    source          = "${path.root}/../../bin/${each.key}"
+    source          = "${local.path}/bin/${each.key}"
   }
 }
 
@@ -15,7 +14,7 @@ data "archive_file" "this" {
 
   type        = "zip"
   source_file = data.null_data_source.wait_for_lambda_build[each.key].outputs["source"]
-  output_path = "${path.root}/../../archive/${each.key}.zip"
+  output_path = "${local.path}/archive/${each.key}.zip"
 }
 
 data "aws_iam_policy_document" "role" {

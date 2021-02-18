@@ -7,26 +7,14 @@ import (
 	"os"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
 	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
-	cidpif "github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
 	util "github.com/seanturner026/serverless-release-dashboard/internal/util"
 )
 
 type deleteUserEvent struct {
 	EmailAddress string `json:"email_address"`
-}
-
-type application struct {
-	config configuration
-}
-
-type configuration struct {
-	UserPoolID string
-	idp        cidpif.CognitoIdentityProviderAPI
 }
 
 func (app application) deleteUser(e deleteUserEvent) error {
@@ -47,9 +35,7 @@ func (app application) deleteUser(e deleteUserEvent) error {
 	return nil
 }
 
-func (app application) handler(event events.APIGatewayProxyRequest) (events.APIGatewayV2HTTPResponse, error) {
-	headers := map[string]string{"Content-Type": "application/json"}
-
+func (app application) usersDeleteHandler(event events.APIGatewayV2HTTPRequest, headers map[string]string) events.APIGatewayV2HTTPResponse {
 	e := deleteUserEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
 	if err != nil {
@@ -59,19 +45,9 @@ func (app application) handler(event events.APIGatewayProxyRequest) (events.APIG
 	err = app.deleteUser(e)
 	if err != nil {
 		resp := util.GenerateResponseBody(fmt.Sprintf("Error deleting user %v", e.EmailAddress), 404, err, headers, []string{})
-		return resp, nil
+		return resp
 	}
 
 	resp := util.GenerateResponseBody(fmt.Sprintf("Deleted user %v", e.EmailAddress), 200, nil, headers, []string{})
-	return resp, nil
-}
-
-func main() {
-	config := configuration{
-		UserPoolID: os.Getenv("USER_POOL_ID"),
-		idp:        cidp.New(session.Must(session.NewSession())),
-	}
-
-	app := application{config: config}
-	lambda.Start(app.handler)
+	return resp
 }

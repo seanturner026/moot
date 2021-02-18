@@ -4,16 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/seanturner026/serverless-release-dashboard/internal/util"
 )
 
@@ -23,15 +19,6 @@ type createRepoEvent struct {
 	RepoOwner    string `dynamodbav:"SK" json:"repo_owner"`
 	BranchBase   string `dynamodbav:"BranchBase" json:"branch_base"`
 	BranchHead   string `dynamodbav:"BranchHead" json:"branch_head"`
-}
-
-type application struct {
-	config configuration
-}
-
-type configuration struct {
-	TableName string
-	db        dynamodbiface.DynamoDBAPI
 }
 
 func generatePutItemInput(e createRepoEvent) (createRepoEvent, map[string]*dynamodb.AttributeValue, error) {
@@ -63,8 +50,7 @@ func (app application) writeRepoToDB(e createRepoEvent, itemInput map[string]*dy
 	return nil
 }
 
-func (app application) handler(event events.APIGatewayProxyRequest) (events.APIGatewayV2HTTPResponse, error) {
-	headers := map[string]string{"Content-Type": "application/json"}
+func (app application) repositoriesCreateHandler(event events.APIGatewayV2HTTPRequest, headers map[string]string) events.APIGatewayV2HTTPResponse {
 
 	e := createRepoEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
@@ -75,25 +61,15 @@ func (app application) handler(event events.APIGatewayProxyRequest) (events.APIG
 	e, itemInput, err := generatePutItemInput(e)
 	if err != nil {
 		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to stage provided information for loading into DynamoDB for ID %v, %v", e.RepoName, err), 404, err, headers, []string{})
-		return resp, nil
+		return resp
 	}
 
 	err = app.writeRepoToDB(e, itemInput)
 	if err != nil {
 		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to write record %v to DynamoDB table, %v", e.RepoName, err), 404, err, headers, []string{})
-		return resp, nil
+		return resp
 	}
 
 	resp := util.GenerateResponseBody(fmt.Sprintf("Wrote record %v to DynamoDB successfully", e.RepoName), 200, nil, headers, []string{})
-	return resp, nil
-}
-
-func main() {
-	config := configuration{
-		TableName: os.Getenv("TABLE_NAME"),
-		db:        dynamodb.New(session.Must(session.NewSession())),
-	}
-
-	app := application{config: config}
-	lambda.Start(app.handler)
+	return resp
 }

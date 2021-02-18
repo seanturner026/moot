@@ -1,0 +1,56 @@
+[
+  {
+    "resource": "/",
+    "path": "/users/create",
+    "httpMethod": "POST",
+    "requestContext": {
+      "resourcePath": "/",
+      "httpMethod": "POST",
+      "path": "/users/create"
+    },
+    "headers": {},
+    "multiValueHeaders": {},
+    "queryStringParameters": null,
+    "multiValueQueryStringParameters": null,
+    "pathParameters": null,
+    "stageVariables": null,
+    "body": "{\"email_address\": \"string\"}",
+    "isBase64Encoded": false
+  },
+  {
+    "resource": "/",
+    "path": "/users/delete",
+    "httpMethod": "POST",
+    "requestContext": {
+      "resourcePath": "/",
+      "httpMethod": "POST",
+      "path": "/users/delete"
+    },
+    "headers": {},
+    "multiValueHeaders": {},
+    "queryStringParameters": null,
+    "multiValueQueryStringParameters": null,
+    "pathParameters": null,
+    "stageVariables": null,
+    "body": "{\"email_address\": \"string\"}",
+    "isBase64Encoded": false
+  },
+  {
+    "resource": "/",
+    "path": "/users/list",
+    "httpMethod": "GET",
+    "requestContext": {
+      "resourcePath": "/",
+      "httpMethod": "GET",
+      "path": "/users/list"
+    },
+    "headers": {},
+    "multiValueHeaders": {},
+    "queryStringParameters": null,
+    "multiValueQueryStringParameters": null,
+    "pathParameters": null,
+    "stageVariables": null,
+    "body": "",
+    "isBase64Encoded": false
+  }
+]
