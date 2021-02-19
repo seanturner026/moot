@@ -44,7 +44,7 @@ func (app application) resetPassword(e resetPasswordEvent, secretHash string) (s
 	return *resp.AuthenticationResult.AccessToken, nil
 }
 
-func (app application) usersResetPasswordHandler(event events.APIGatewayV2HTTPRequest, headers map[string]string) events.APIGatewayV2HTTPResponse {
+func (app application) authResetPasswordHandler(event events.APIGatewayV2HTTPRequest, headers map[string]string) events.APIGatewayV2HTTPResponse {
 	e := resetPasswordEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
 	if err != nil {

@@ -31,7 +31,7 @@ type userAuthResponse struct {
 func (app application) generateAuthInput(e userAuthEvent, path string, secretHash string) *cidp.InitiateAuthInput {
 	input := &cidp.InitiateAuthInput{}
 	input.ClientId = aws.String(app.config.ClientPoolID)
-	if path == "/users/login" {
+	if path == "/auth/login" {
 		input.AuthFlow = aws.String("USER_PASSWORD_AUTH")
 		input.AuthParameters = map[string]*string{
 			"USERNAME":    aws.String(e.EmailAddress),
@@ -79,7 +79,7 @@ func (app application) loginUser(e userAuthEvent, input *cidp.InitiateAuthInput)
 	return loginUserResp, nil
 }
 
-func (app application) usersLoginHandler(event events.APIGatewayV2HTTPRequest, headers map[string]string) events.APIGatewayV2HTTPResponse {
+func (app application) authLoginHandler(event events.APIGatewayV2HTTPRequest, headers map[string]string) events.APIGatewayV2HTTPResponse {
 	e := userAuthEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
 	if err != nil {

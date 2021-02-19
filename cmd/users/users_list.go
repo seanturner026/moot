@@ -72,6 +72,11 @@ func (app application) usersListHandler(event events.APIGatewayV2HTTPRequest, he
 
 	var buf bytes.Buffer
 	json.HTMLEscape(&buf, body)
-	resp := util.GenerateResponseBody(buf.String(), statusCode, err, headers, []string{})
+	resp := events.APIGatewayV2HTTPResponse{
+		StatusCode:      statusCode,
+		Headers:         headers,
+		Body:            buf.String(),
+		IsBase64Encoded: false,
+	}
 	return resp
 }

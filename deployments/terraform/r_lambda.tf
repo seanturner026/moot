@@ -4,13 +4,13 @@ resource "null_resource" "lambda_build" {
   triggers = {
     binary_exists = fileexists("${local.path}/bin/${each.key}")
 
-    main = concat([
+    main = join("", [
       for file in fileset("${local.path}/cmd/${each.key}", "*.go") : filebase64("${local.path}/cmd/${each.key}/${file}")
-    ])[0]
+    ])
 
-    util = concat([
+    util = join("", [
       for file in fileset("${local.path}/internal/util", "*.go") : filebase64("${local.path}/internal/util/${file}")
-    ])[0]
+    ])
   }
 
   provisioner "local-exec" {
@@ -26,13 +26,13 @@ resource "null_resource" "lambda_test" {
   for_each = local.lambdas
 
   triggers = {
-    main = concat([
+    main = join("", [
       for file in fileset("${local.path}/cmd/${each.key}", "*.go") : filebase64("${local.path}/cmd/${each.key}/${file}")
-    ])[0]
+    ])
 
-    util = concat([
+    util = join("", [
       for file in fileset("${local.path}/internal/util", "*.go") : filebase64("${local.path}/internal/util/${file}")
-    ])[0]
+    ])
   }
 
   provisioner "local-exec" {
@@ -45,7 +45,7 @@ resource "aws_lambda_function" "this" {
   for_each   = local.lambdas
 
   filename         = "${local.path}/archive/${each.key}.zip"
-  function_name    = "${var.tags.name}_${each.key}"
+  function_name    = each.key
   description      = each.value.description
   role             = aws_iam_role.this[each.key].arn
   handler          = each.key
@@ -61,11 +61,11 @@ resource "aws_lambda_function" "this" {
 }
 
 resource "aws_lambda_permission" "this" {
-  for_each = local.lambdas
+  for_each = local.lambda_integrations
 
-  statement_id  = "AllowAPIGatewayV2Invoke"
+  statement_id  = "AllowAPIGatewayV2Invoke-${replace(replace(each.key, "/", ""), ".", "")}"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.this[each.key].function_name
+  function_name = aws_lambda_function.this[each.value.lambda_key].function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.this.execution_arn}/*/*/${aws_lambda_function.this[each.key].function_name}"
+  source_arn    = "${aws_apigatewayv2_api.this.execution_arn}/*/*${each.value.route}"
 }

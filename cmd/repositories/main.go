@@ -23,29 +23,29 @@ type configuration struct {
 	db                       dynamodbiface.DynamoDBAPI
 }
 
-func (app application) handler(event events.APIGatewayV2HTTPRequest) events.APIGatewayV2HTTPResponse {
+func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
 	var resp events.APIGatewayV2HTTPResponse
 	headers := map[string]string{"Content-Type": "application/json"}
 
 	if event.RawPath == "/repositories/create" {
 		log.Printf("[INFO] handling request on %v", event.RawPath)
 		resp = app.repositoriesCreateHandler(event, headers)
-		return resp
+		return resp, nil
 
 	} else if event.RawPath == "/repositories/delete" {
 		log.Printf("[INFO] handling request on %v", event.RawPath)
 		resp = app.repositoriesDeleteHandler(event, headers)
-		return resp
+		return resp, nil
 
 	} else if event.RawPath == "/repositories/list" {
 		log.Printf("[INFO] handling request on %v", event.RawPath)
 		resp = app.repositoriesListHandler(event, headers)
-		return resp
+		return resp, nil
 
 	} else {
 		log.Printf("[ERROR] path %v does not exist", event.RawPath)
 		resp = util.GenerateResponseBody(fmt.Sprintf("Path does not exist %v", event.RawPath), 404, nil, headers, []string{})
-		return resp
+		return resp, nil
 	}
 }
 

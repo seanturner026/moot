@@ -22,29 +22,29 @@ type configuration struct {
 	idp        cidpif.CognitoIdentityProviderAPI
 }
 
-func (app application) handler(event events.APIGatewayV2HTTPRequest) events.APIGatewayV2HTTPResponse {
+func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
 	var resp events.APIGatewayV2HTTPResponse
 	headers := map[string]string{"Content-Type": "application/json"}
 
 	if event.RawPath == "/users/create" {
 		log.Printf("[INFO] handling request on %v", event.RawPath)
 		resp = app.usersCreateHandler(event, headers)
-		return resp
+		return resp, nil
 
 	} else if event.RawPath == "/users/delete" {
 		log.Printf("[INFO] handling request on %v", event.RawPath)
 		resp = app.usersDeleteHandler(event, headers)
-		return resp
+		return resp, nil
 
 	} else if event.RawPath == "/users/list" {
 		log.Printf("[INFO] handling request on %v", event.RawPath)
 		resp = app.usersListHandler(event, headers)
-		return resp
+		return resp, nil
 
 	} else {
 		log.Printf("[ERROR] path %v does not exist", event.RawPath)
 		resp = util.GenerateResponseBody(fmt.Sprintf("Path does not exist %v", event.RawPath), 404, nil, headers, []string{})
-		return resp
+		return resp, nil
 	}
 }
 

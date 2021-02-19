@@ -19,11 +19,12 @@ type listReposEvent struct {
 }
 
 type reposList struct {
-	RepoOwner    string `dynamodbav:"SK" json:"repo_owner"`
-	RepoName     string `dynamodbav:"PK" json:"repo_name"`
-	RepoProvider string `dynamodbav:"RepoProvider" json:"repo_provider"`
-	BranchBase   string `dynamodbav:"BranchBase" json:"branch_base"`
-	BranchHead   string `dynamodbav:"BranchHead" json:"branch_head"`
+	RepoOwner      string `dynamodbav:"SK" json:"repo_owner"`
+	RepoName       string `dynamodbav:"PK" json:"repo_name"`
+	RepoProvider   string `dynamodbav:"RepoProvider" json:"repo_provider"`
+	BranchBase     string `dynamodbav:"BranchBase" json:"branch_base"`
+	BranchHead     string `dynamodbav:"BranchHead" json:"branch_head"`
+	CurrentVersion string `dynamodbav:"CurrentVersion" json:"current_version"`
 }
 
 func (app application) listRepos(e listReposEvent) (dynamodb.QueryOutput, error) {

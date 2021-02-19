@@ -36,7 +36,7 @@ func (app application) stageBatchWrites(e deleteRepositoriesEvent) error {
 						S: aws.String(r.RepoName),
 					},
 					"SK": {
-						S: aws.String(fmt.Sprintf("repo#%v", r.RepoOwner)),
+						S: aws.String(r.RepoName),
 					},
 				},
 			},

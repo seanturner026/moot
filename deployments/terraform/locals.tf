@@ -26,13 +26,16 @@ locals {
         USER_POOL_ID       = aws_cognito_user_pool.this.id
       }
       routes = {
-        "/users/login"          = "POST"
-        "/users/refresh/token"  = "POST"
-        "/users/reset/password" = "POST"
+        "/auth/login"          = "POST"
+        "/auth/refresh/token"  = "POST"
+        "/auth/reset/password" = "POST"
       }
       iam_statements = {
         cognito = {
-          actions   = ["cognito-idp:InitiateAuth"]
+          actions = [
+            "cognito-idp:AdminRespondToAuthChallenge",
+            "cognito-idp:InitiateAuth",
+          ]
           resources = [aws_cognito_user_pool.this.arn]
         }
       }
@@ -47,7 +50,7 @@ locals {
         TABLE_NAME        = aws_dynamodb_table.this.id
       }
       routes = {
-        "/release/create" = "POST"
+        "/releases/create" = "POST"
       }
       iam_statements = {
         dynamodb = {
@@ -61,7 +64,8 @@ locals {
       description = "Writes github repository details to DynamoDB."
       authorizer  = true
       environment = {
-        TABLE_NAME = aws_dynamodb_table.this.id
+        GLOBAL_SECONDARY_INDEX_NAME = var.global_secondary_index_name
+        TABLE_NAME                  = aws_dynamodb_table.this.id
       }
       routes = {
         "/repositories/create" = "POST"
@@ -70,8 +74,16 @@ locals {
       }
       iam_statements = {
         dynamodb = {
-          actions   = ["dynamodb:PutItem"]
-          resources = [aws_dynamodb_table.this.arn]
+          actions = [
+            "dynamodb:BatchWriteItem",
+            "dynamodb:PutItem",
+            "dynamodb:Query",
+            "dynamodb:UpdateItem",
+          ]
+          resources = [
+            aws_dynamodb_table.this.arn,
+            "${aws_dynamodb_table.this.arn}/index/${var.global_secondary_index_name}",
+          ]
         }
       }
     }
