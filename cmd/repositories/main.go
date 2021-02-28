@@ -23,6 +23,16 @@ type configuration struct {
 	db                       dynamodbiface.DynamoDBAPI
 }
 
+type repository struct {
+	RepoName        string `json:"repo_name,omitempty"`
+	RepoProvider    string `dynamodbav:"SK" json:"repo_provider,omitempty"`
+	RepoOwner       string `dynamodbav:"RepoOwner" json:"repo_owner,omitempty"`
+	BranchBase      string `dynamodbav:"BranchBase" json:"branch_base,omitempty"`
+	BranchHead      string `dynamodbav:"BranchHead" json:"branch_head,omitempty"`
+	CurrentVersion  string `dynamodbav:"CurrentVersion" json:"current_version,omitempty"`
+	GitlabProjectID string `dynamodbav:"GitlabProjectID,omitempty" json:"gitlab_repo_id,omitempty"`
+}
+
 func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
 	var resp events.APIGatewayV2HTTPResponse
 	headers := map[string]string{"Content-Type": "application/json"}

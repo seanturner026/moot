@@ -10,6 +10,10 @@ locals {
       description     = "Token for releasing on Github.com."
       parameter_value = var.github_token
     }
+    gitlab_token = {
+      description     = "Token for releasing on Gitlab.com."
+      parameter_value = var.gitlab_token
+    }
     slack_webhook_url = {
       description     = "URL to send slack message payloads to."
       parameter_value = var.slack_webhook_url
@@ -41,16 +45,18 @@ locals {
       }
     }
 
-    releases_create = {
+    releases = {
       description = "Creates github releases for repository specified in the event."
       authorizer  = true
       environment = {
         GITHUB_TOKEN      = aws_ssm_parameter.this["github_token"].value
+        GITLAB_TOKEN      = aws_ssm_parameter.this["gitlab_token"].value
         SLACK_WEBHOOK_URL = aws_ssm_parameter.this["slack_webhook_url"].value
         TABLE_NAME        = aws_dynamodb_table.this.id
       }
       routes = {
-        "/releases/create" = "POST"
+        "/releases/create/github" = "POST"
+        "/releases/create/gitlab" = "POST"
       }
       iam_statements = {
         dynamodb = {

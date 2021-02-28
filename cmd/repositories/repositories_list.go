@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
@@ -18,28 +19,13 @@ type listReposEvent struct {
 	RepoOwner string `json:"repo_owner"`
 }
 
-type reposList struct {
-	RepoOwner      string `dynamodbav:"SK" json:"repo_owner"`
-	RepoName       string `dynamodbav:"PK" json:"repo_name"`
-	RepoProvider   string `dynamodbav:"RepoProvider" json:"repo_provider"`
-	BranchBase     string `dynamodbav:"BranchBase" json:"branch_base"`
-	BranchHead     string `dynamodbav:"BranchHead" json:"branch_head"`
-	CurrentVersion string `dynamodbav:"CurrentVersion" json:"current_version"`
-}
-
 func (app application) listRepos(e listReposEvent) (dynamodb.QueryOutput, error) {
 	input := &dynamodb.QueryInput{
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":sort_key": {
-				S: aws.String("repo#" + e.RepoOwner),
-			},
-			// ":repo_provider": {
-			// 	// NOTE(SMT): This is poorly implemented
-			// 	S: aws.String("github.com"), // e.RepoProvider
-			// },
-		},
-		IndexName:              aws.String(app.config.GlobalSecondaryIndexName),
-		KeyConditionExpression: aws.String("SK = :sort_key"), //AND repo_provider = :repo_provider"),
+			":primary_key": {
+				S: aws.String("repo"),
+			}},
+		KeyConditionExpression: aws.String("PK = :primary_key"),
 		Select:                 aws.String("ALL_ATTRIBUTES"),
 		TableName:              aws.String(app.config.TableName),
 	}
@@ -57,6 +43,12 @@ func (app application) listRepos(e listReposEvent) (dynamodb.QueryOutput, error)
 	return *resp, err
 }
 
+func (r *repository) removeDynamoRepoPartion() {
+	repoDetails := strings.Split(r.RepoProvider, "#")
+	r.RepoProvider = repoDetails[0]
+	r.RepoName = repoDetails[1]
+}
+
 func (app application) repositoriesListHandler(event events.APIGatewayV2HTTPRequest, headers map[string]string) events.APIGatewayV2HTTPResponse {
 	e := listReposEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
@@ -70,14 +62,18 @@ func (app application) repositoriesListHandler(event events.APIGatewayV2HTTPRequ
 		return resp
 	}
 
-	reposList := []reposList{}
-	err = dynamodbattribute.UnmarshalListOfMaps(output.Items, &reposList)
+	repos := []*repository{}
+	err = dynamodbattribute.UnmarshalListOfMaps(output.Items, &repos)
 	if err != nil {
 		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to unmarshal DynamoDB resp, %v", err), 404, err, headers, []string{})
 		return resp
 	}
 
-	body, err := json.Marshal(reposList)
+	for _, repo := range repos {
+		repo.removeDynamoRepoPartion()
+	}
+
+	body, err := json.Marshal(repos)
 	statusCode := 200
 	if err != nil {
 		log.Printf("[ERROR] Unable to marshal json for response, %v", err)

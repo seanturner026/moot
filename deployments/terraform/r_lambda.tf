@@ -41,7 +41,7 @@ resource "null_resource" "lambda_test" {
 }
 
 resource "aws_lambda_function" "this" {
-  depends_on = [null_resource.lambda_build]
+  depends_on = [null_resource.lambda_build, null_resource.lambda_test]
   for_each   = local.lambdas
 
   filename         = "${local.path}/archive/${each.key}.zip"

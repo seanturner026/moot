@@ -1,0 +1,38 @@
+[
+  {
+    "resource": "/",
+    "path": "/releases/create/github",
+    "httpMethod": "POST",
+    "requestContext": {
+      "resourcePath": "/",
+      "httpMethod": "POST",
+      "path": "/releases/create/github"
+    },
+    "headers": {},
+    "multiValueHeaders": {},
+    "queryStringParameters": null,
+    "multiValueQueryStringParameters": null,
+    "pathParameters": null,
+    "stageVariables": null,
+    "body": "{\"repo_owner\": \"string\", \"repo_name\": \"string\", \"repo_provider\": \"string\", \"branch_head\": \"string\", \"branch_base\": \"string\", \"release_version\": \"string\", \"release_body\": \"string\"}",
+    "isBase64Encoded": false
+  },
+  {
+    "resource": "/",
+    "path": "/releases/create/gitlab",
+    "httpMethod": "POST",
+    "requestContext": {
+      "resourcePath": "/",
+      "httpMethod": "POST",
+      "path": "/releases/create/gitlab"
+    },
+    "headers": {},
+    "multiValueHeaders": {},
+    "queryStringParameters": null,
+    "multiValueQueryStringParameters": null,
+    "pathParameters": null,
+    "stageVariables": null,
+    "body": "{\"repo_owner\": \"string\", \"repo_name\": \"string\", \"repo_provider\": \"string\", \"branch_head\": \"string\", \"branch_base\": \"string\", \"release_version\": \"string\", \"release_body\": \"string\", \"gitlab_project_id\": \"string\"}",
+    "isBase64Encoded": false
+  }
+]

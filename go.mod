@@ -7,6 +7,6 @@ require (
 	github.com/aws/aws-sdk-go v1.36.23
 	github.com/google/go-cmp v0.5.4 // indirect
 	github.com/google/go-github v17.0.0+incompatible
-	github.com/google/go-querystring v1.0.0 // indirect
+	github.com/xanzy/go-gitlab v0.44.0
 	golang.org/x/oauth2 v0.0.0-20201208152858-08078c50e5b5
 )

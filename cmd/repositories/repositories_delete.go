@@ -17,11 +17,6 @@ type deleteRepositoriesEvent struct {
 	Repositories []repository `json:"repositories"`
 }
 
-type repository struct {
-	RepoName  string `dynamodbav:"PK" json:"repo_name"`
-	RepoOwner string `dynamodbav:"SK" json:"repo_owner"`
-}
-
 func (app application) stageBatchWrites(e deleteRepositoriesEvent) error {
 	repositories := []*dynamodb.WriteRequest{}
 	for i, r := range e.Repositories {
@@ -33,10 +28,10 @@ func (app application) stageBatchWrites(e deleteRepositoriesEvent) error {
 			DeleteRequest: &dynamodb.DeleteRequest{
 				Key: map[string]*dynamodb.AttributeValue{
 					"PK": {
-						S: aws.String(r.RepoName),
+						S: aws.String("repo"),
 					},
 					"SK": {
-						S: aws.String(r.RepoName),
+						S: aws.String(fmt.Sprintf("%s#%s", r.RepoProvider, r.RepoName)),
 					},
 				},
 			},

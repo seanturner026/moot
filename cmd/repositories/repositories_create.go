@@ -14,17 +14,18 @@ import (
 )
 
 type createRepoEvent struct {
-	RepoName     string `dynamodbav:"PK" json:"repo_name"`
-	RepoProvider string `dynamodbav:"RepoProvider" json:"repo_provider"`
-	RepoOwner    string `dynamodbav:"SK" json:"repo_owner"`
-	BranchBase   string `dynamodbav:"BranchBase" json:"branch_base"`
-	BranchHead   string `dynamodbav:"BranchHead" json:"branch_head"`
+	Type            string `dynamodbav:"PK" json:"type"`
+	RepoProvider    string `dynamodbav:"SK" json:"repo_provider"`
+	RepoName        string `dynamodbav:"-" json:"repo_name"`
+	RepoOwner       string `dynamodbav:"RepoOwner" json:"repo_owner"`
+	BranchBase      string `dynamodbav:"BranchBase" json:"branch_base"`
+	BranchHead      string `dynamodbav:"BranchHead" json:"branch_head"`
+	GitlabProjectID string `dynamodbav:"GitlabProjectID,omitempty" json:"gitlab_repo_id,omitempty"`
 }
 
 func generatePutItemInput(e createRepoEvent) (createRepoEvent, map[string]*dynamodb.AttributeValue, error) {
-	e.RepoOwner = fmt.Sprintf("repo#%v", e.RepoOwner)
+	e.RepoProvider = fmt.Sprintf("%s#%s", e.RepoProvider, e.RepoName)
 	itemInput, err := dynamodbattribute.MarshalMap(e)
-	log.Printf("[DEBUG] itemInput %+v", itemInput)
 	if err != nil {
 		return e, map[string]*dynamodb.AttributeValue{}, err
 	}
