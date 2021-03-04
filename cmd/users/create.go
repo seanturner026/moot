@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
-	util "github.com/seanturner026/serverless-release-dashboard/internal/util"
+	"github.com/seanturner026/serverless-release-dashboard/internal/util"
 )
 
 type createUserEvent struct {

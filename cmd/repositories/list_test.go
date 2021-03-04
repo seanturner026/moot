@@ -24,14 +24,12 @@ func TestListRepos(t *testing.T) {
 			Error:    nil,
 		}
 
-		app := application{config: configuration{
+		app := application{aws: awsController{
 			TableName: "test",
 			db:        dbMock,
 		}}
 
-		event := listReposEvent{RepoOwner: "test"}
-
-		_, err := app.listRepos(event)
+		_, err := app.aws.listRepos()
 		if err != nil {
 			t.Fatal("Query should have returned results")
 		}

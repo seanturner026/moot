@@ -41,3 +41,15 @@ data "aws_iam_policy_document" "policy" {
     }
   }
 }
+
+data "aws_iam_policy_document" "s3" {
+  statement {
+    actions   = ["s3:GetObject"]
+    resources = ["arn:aws:s3:::release-dashboard-${var.account_id}/*"]
+
+    principals {
+      type        = "AWS"
+      identifiers = module.cloudfront.this_cloudfront_origin_access_identity_iam_arns
+    }
+  }
+}

@@ -7,11 +7,11 @@ locals {
       parameter_value = aws_cognito_user_pool_client.this.client_secret
     }
     github_token = {
-      description     = "Token for releasing on Github.com."
+      description     = "Token for Github.com access."
       parameter_value = var.github_token
     }
     gitlab_token = {
-      description     = "Token for releasing on Gitlab.com."
+      description     = "Token for Gitlab.com access."
       parameter_value = var.gitlab_token
     }
     slack_webhook_url = {
@@ -70,13 +70,15 @@ locals {
       description = "Writes github repository details to DynamoDB."
       authorizer  = true
       environment = {
+        GITHUB_TOKEN                = aws_ssm_parameter.this["github_token"].value
+        GITLAB_TOKEN                = aws_ssm_parameter.this["gitlab_token"].value
         GLOBAL_SECONDARY_INDEX_NAME = var.global_secondary_index_name
         TABLE_NAME                  = aws_dynamodb_table.this.id
       }
       routes = {
         "/repositories/create" = "POST"
         "/repositories/delete" = "POST"
-        "/repositories/list"   = "POST"
+        "/repositories/list"   = "GET"
       }
       iam_statements = {
         dynamodb = {

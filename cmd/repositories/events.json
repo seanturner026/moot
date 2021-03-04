@@ -50,7 +50,7 @@
     "multiValueQueryStringParameters": null,
     "pathParameters": null,
     "stageVariables": null,
-    "body": "{\"repo_owner\": \"string\"}",
+    "body": "",
     "isBase64Encoded": false
   }
 ]

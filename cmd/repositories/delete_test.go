@@ -25,7 +25,7 @@ func TestStageBatchWrites(t *testing.T) {
 			Error:    nil,
 		}
 
-		app := application{config: configuration{
+		app := application{aws: awsController{
 			TableName: "test",
 			db:        dbMock,
 		}}
@@ -34,7 +34,7 @@ func TestStageBatchWrites(t *testing.T) {
 			{RepoName: "test", RepoOwner: "test"},
 		}}
 
-		err := app.stageBatchWrites(event)
+		err := app.aws.stageBatchWrites(event)
 		if err != nil {
 			t.Fatal("Repos should have been staged")
 		}
@@ -48,7 +48,7 @@ func TestDeleteRepositories(t *testing.T) {
 			Error:    nil,
 		}
 
-		app := application{config: configuration{
+		app := application{aws: awsController{
 			TableName: "test",
 			db:        dbMock,
 		}}
@@ -68,7 +68,7 @@ func TestDeleteRepositories(t *testing.T) {
 			},
 		}
 
-		err := app.deleteRepositories(requestItems)
+		err := app.aws.deleteRepositories(requestItems)
 		if err != nil {
 			t.Fatal("Repo should have been deleted")
 		}

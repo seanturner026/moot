@@ -83,45 +83,40 @@ func (app githubController) CreateRelease(e releaseEvent) error {
 }
 
 func (app application) releasesGithubHandler(e releaseEvent) (string, error) {
-	prResp, err := app.gh.CreatePullRequest(e)
-	if err != nil {
-		message := fmt.Sprintf(
-			"Could not create Github pull request for %v version %v, please check github for furhter details.",
-			e.RepoName,
-			e.ReleaseVersion,
-		)
-		return message, err
-	}
+	var err error
+	if !e.Hotfix {
+		prResp, err := app.gh.CreatePullRequest(e)
+		if err != nil {
+			message := fmt.Sprintf("Could not create Github pull request for %v version %v, please check github for furhter details.",
+				e.RepoName,
+				e.ReleaseVersion)
+			return message, err
+		}
 
-	mergeResp, err := app.gh.MergePullRequest(*prResp.Number, e)
-	if err != nil {
-		message := fmt.Sprintf(
-			"API request to merge github pull request %v for %v version %v failed, please check the pull request on github for further details.",
-			*prResp.Number,
-			e.RepoName,
-			e.ReleaseVersion,
-		)
-		return message, err
-	}
+		mergeResp, err := app.gh.MergePullRequest(*prResp.Number, e)
+		if err != nil {
+			message := fmt.Sprintf("API request to merge github pull request %v for %v version %v failed, please check the pull request on github for further details.",
+				*prResp.Number,
+				e.RepoName,
+				e.ReleaseVersion)
+			return message, err
+		}
 
-	if !*mergeResp.Merged {
-		log.Printf("[ERROR] %v pull request %v not merged", e.RepoName, *prResp.Number)
-		message := fmt.Sprintf(
-			"API request to merge github pull request %v for %v version %v failed, please check the pull request on github for further details.",
-			*prResp.Number,
-			e.RepoName,
-			e.ReleaseVersion,
-		)
-		return message, err
+		if !*mergeResp.Merged {
+			log.Printf("[ERROR] %v pull request %v not merged", e.RepoName, *prResp.Number)
+			message := fmt.Sprintf("API request to merge github pull request %v for %v version %v failed, please check the pull request on github for further details.",
+				*prResp.Number,
+				e.RepoName,
+				e.ReleaseVersion)
+			return message, err
+		}
 	}
 
 	err = app.gh.CreateRelease(e)
 	if err != nil {
-		message := fmt.Sprintf(
-			"Unable to create %v release version %v on Github.",
+		message := fmt.Sprintf("Unable to create %v release version %v on Github.",
 			e.RepoName,
-			e.ReleaseVersion,
-		)
+			e.ReleaseVersion)
 		return message, err
 	}
 

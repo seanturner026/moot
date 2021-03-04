@@ -15,11 +15,7 @@ import (
 	"github.com/seanturner026/serverless-release-dashboard/internal/util"
 )
 
-type listReposEvent struct {
-	RepoOwner string `json:"repo_owner"`
-}
-
-func (app application) listRepos(e listReposEvent) (dynamodb.QueryOutput, error) {
+func (app awsController) listRepos() (dynamodb.QueryOutput, error) {
 	input := &dynamodb.QueryInput{
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":primary_key": {
@@ -27,10 +23,10 @@ func (app application) listRepos(e listReposEvent) (dynamodb.QueryOutput, error)
 			}},
 		KeyConditionExpression: aws.String("PK = :primary_key"),
 		Select:                 aws.String("ALL_ATTRIBUTES"),
-		TableName:              aws.String(app.config.TableName),
+		TableName:              aws.String(app.TableName),
 	}
 
-	resp, err := app.config.db.Query(input)
+	resp, err := app.db.Query(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			log.Printf("[ERROR] %v", aerr.Error())
@@ -50,15 +46,9 @@ func (r *repository) removeDynamoRepoPartion() {
 }
 
 func (app application) repositoriesListHandler(event events.APIGatewayV2HTTPRequest, headers map[string]string) events.APIGatewayV2HTTPResponse {
-	e := listReposEvent{}
-	err := json.Unmarshal([]byte(event.Body), &e)
+	output, err := app.aws.listRepos()
 	if err != nil {
-		log.Printf("[ERROR] %v", err)
-	}
-
-	output, err := app.listRepos(e)
-	if err != nil {
-		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to query repos belonging to %v, %v", e.RepoOwner, err), 404, err, headers, []string{})
+		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to query repos, %v", err), 404, err, headers, []string{})
 		return resp
 	}
 

@@ -15,7 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/google/go-github/github"
-	util "github.com/seanturner026/serverless-release-dashboard/internal/util"
+	"github.com/seanturner026/serverless-release-dashboard/internal/util"
 	"github.com/xanzy/go-gitlab"
 	"golang.org/x/oauth2"
 )
@@ -31,6 +31,7 @@ type releaseEvent struct {
 	ReleaseBody     string `json:"release_body"`
 	ReleaseVersion  string `json:"release_version"`
 	GitlabProjectID string `json:"gitlab_project_id,omitempty"`
+	Hotfix          bool   `json:"hotfix"`
 }
 
 type application struct {
@@ -138,33 +139,38 @@ func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.API
 }
 
 func main() {
-	githubCtx := context.Background()
-	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")})
-	tc := oauth2.NewClient(githubCtx, ts)
-
-	clientGitlab, err := gitlab.NewClient(os.Getenv("GITLAB_TOKEN"))
-	if err != nil {
-		log.Fatalf("Failed to create client: %v", err)
-	}
-
 	app := application{
 		aws: awsController{
 			TableName: os.Getenv("TABLE_NAME"),
 			db:        dynamodb.New(session.Must(session.NewSession())),
 		},
-		gh: githubController{
+		Config: configuration{
+			SlackWebhookURL: os.Getenv("SLACK_WEBHOOK_URL"),
+		},
+	}
+
+	if os.Getenv("GITHUB_TOKEN") != "" {
+		githubCtx := context.Background()
+		ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")})
+		tc := oauth2.NewClient(githubCtx, ts)
+
+		app.gh = githubController{
 			Client:    github.NewClient(tc),
 			GithubCtx: githubCtx,
-		},
-		gl: gitlabController{
+		}
+	}
+
+	if os.Getenv("GITLAB_TOKEN") != "" {
+		clientGitlab, err := gitlab.NewClient(os.Getenv("GITLAB_TOKEN"))
+		if err != nil {
+			log.Fatalf("Failed to create client: %v", err)
+		}
+		app.gl = gitlabController{
 			ProjectID:          "",
 			MergeRequestSquash: false,
 			RemoveSourceBranch: true,
 			Client:             clientGitlab,
-		},
-		Config: configuration{
-			SlackWebhookURL: os.Getenv("SLACK_WEBHOOK_URL"),
-		},
+		}
 	}
 
 	lambda.Start(app.handler)

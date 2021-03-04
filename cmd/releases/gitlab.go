@@ -74,7 +74,7 @@ func (app gitlabController) acceptMergeRequest(e releaseEvent, mergeRequestID in
 	return nil
 }
 
-func (app gitlabController) createReleaseTag(e releaseEvent) error {
+func (app gitlabController) createRelease(e releaseEvent) error {
 	input := &gitlab.CreateReleaseOptions{
 		Name:        gitlab.String(e.ReleaseVersion),
 		TagName:     gitlab.String(e.ReleaseVersion),
@@ -93,25 +93,32 @@ func (app gitlabController) createReleaseTag(e releaseEvent) error {
 }
 
 func (app application) releasesGitlabHandler(e releaseEvent) (string, error) {
-	createMergeRequestResp, err := app.gl.createMergeRequest(e)
-	if err != nil {
-		message := fmt.Sprintf("Unable to create %v merge request, please check the merge request on gitlab for further details", e.RepoName)
-		return message, err
+	var err error
+	if !e.Hotfix {
+		createMergeRequestResp, err := app.gl.createMergeRequest(e)
+		if err != nil {
+			message := fmt.Sprintf("Unable to create %v merge request, please check the merge request on gitlab for further details", e.RepoName)
+			return message, err
+		}
+
+		err = app.gl.pollMergeRequestStatus(e, createMergeRequestResp.IID)
+		if err != nil {
+			message := fmt.Sprintf("Unable to merge %v merge request %v, please check the merge request on gitlab for further details",
+				e.RepoName,
+				createMergeRequestResp.IID)
+			return message, err
+		}
+
+		err = app.gl.acceptMergeRequest(e, createMergeRequestResp.IID)
+		if err != nil {
+			message := fmt.Sprintf("Unable to complete %v merge request %v, please check the merge request on gitlab for further details",
+				e.RepoName,
+				createMergeRequestResp.IID)
+			return message, err
+		}
 	}
 
-	err = app.gl.pollMergeRequestStatus(e, createMergeRequestResp.IID)
-	if err != nil {
-		message := fmt.Sprintf("Unable to merge %v merge request, please check the merge request on gitlab for further details", e.RepoName)
-		return message, err
-	}
-
-	err = app.gl.acceptMergeRequest(e, createMergeRequestResp.IID)
-	if err != nil {
-		message := fmt.Sprintf("Unable to complete %v merge request, please check the merge request on gitlab for further details", e.RepoName)
-		return message, err
-	}
-
-	err = app.gl.createReleaseTag(e)
+	err = app.gl.createRelease(e)
 	if err != nil {
 		return fmt.Sprintf("Unable to create %v release", e.RepoName), err
 	}

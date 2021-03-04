@@ -49,7 +49,7 @@ func TestWriteRepoToDB(t *testing.T) {
 			Error:    nil,
 		}
 
-		app := application{config: configuration{
+		app := application{aws: awsController{
 			TableName: "test",
 			db:        dbMock,
 		}}
@@ -63,7 +63,7 @@ func TestWriteRepoToDB(t *testing.T) {
 
 		_, input, _ := generatePutItemInput(event)
 
-		err := app.writeRepoToDB(event, input)
+		err := app.aws.writeRepoToDB(event, input)
 		if err != nil {
 			t.Fatal("Input should have been written to DynamoDB")
 		}

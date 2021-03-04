@@ -17,7 +17,7 @@ type deleteRepositoriesEvent struct {
 	Repositories []repository `json:"repositories"`
 }
 
-func (app application) stageBatchWrites(e deleteRepositoriesEvent) error {
+func (app awsController) stageBatchWrites(e deleteRepositoriesEvent) error {
 	repositories := []*dynamodb.WriteRequest{}
 	for i, r := range e.Repositories {
 		if (i+1)%25 == 0 {
@@ -45,14 +45,14 @@ func (app application) stageBatchWrites(e deleteRepositoriesEvent) error {
 	return nil
 }
 
-func (app application) deleteRepositories(requestItems []*dynamodb.WriteRequest) error {
+func (app awsController) deleteRepositories(requestItems []*dynamodb.WriteRequest) error {
 	input := &dynamodb.BatchWriteItemInput{
 		RequestItems: map[string][]*dynamodb.WriteRequest{
 			os.Getenv("TABLE_NAME"): requestItems,
 		},
 	}
 
-	resp, err := app.config.db.BatchWriteItem(input)
+	resp, err := app.db.BatchWriteItem(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			log.Printf("[ERROR] %v", aerr.Error())
@@ -77,7 +77,7 @@ func (app application) repositoriesDeleteHandler(event events.APIGatewayV2HTTPRe
 		log.Printf("[ERROR] %v", err)
 	}
 
-	err = app.stageBatchWrites(e)
+	err = app.aws.stageBatchWrites(e)
 	if err != nil {
 		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to delete repos %v, %v", e, err), 404, err, headers, []string{})
 		return resp

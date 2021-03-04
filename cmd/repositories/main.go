@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -10,17 +11,33 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
+	"github.com/google/go-github/github"
 	"github.com/seanturner026/serverless-release-dashboard/internal/util"
+	"github.com/xanzy/go-gitlab"
+	"golang.org/x/oauth2"
 )
 
 type application struct {
-	config configuration
+	aws awsController
+	gh  githubController
+	gl  gitlabController
 }
 
-type configuration struct {
+type awsController struct {
 	GlobalSecondaryIndexName string
 	TableName                string
 	db                       dynamodbiface.DynamoDBAPI
+}
+
+type githubController struct {
+	Client    *github.Client
+	GithubCtx context.Context
+}
+
+type gitlabController struct {
+	MergeRequestSquash bool
+	RemoveSourceBranch bool
+	Client             *gitlab.Client
 }
 
 type repository struct {
@@ -60,12 +77,36 @@ func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.API
 }
 
 func main() {
-	config := configuration{
-		GlobalSecondaryIndexName: os.Getenv("GLOBAL_SECONDARY_INDEX_NAME"),
-		TableName:                os.Getenv("TABLE_NAME"),
-		db:                       dynamodb.New(session.Must(session.NewSession())),
+	app := application{
+		aws: awsController{
+			GlobalSecondaryIndexName: os.Getenv("GLOBAL_SECONDARY_INDEX_NAME"),
+			TableName:                os.Getenv("TABLE_NAME"),
+			db:                       dynamodb.New(session.Must(session.NewSession())),
+		},
 	}
 
-	app := application{config: config}
+	if os.Getenv("GITHUB_TOKEN") != "" {
+		githubCtx := context.Background()
+		ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")})
+		tc := oauth2.NewClient(githubCtx, ts)
+
+		app.gh = githubController{
+			Client:    github.NewClient(tc),
+			GithubCtx: githubCtx,
+		}
+	}
+
+	if os.Getenv("GITLAB_TOKEN") != "" {
+		clientGitlab, err := gitlab.NewClient(os.Getenv("GITLAB_TOKEN"))
+		if err != nil {
+			log.Fatalf("Failed to create client: %v", err)
+		}
+		app.gl = gitlabController{
+			MergeRequestSquash: false,
+			RemoveSourceBranch: true,
+			Client:             clientGitlab,
+		}
+	}
+
 	lambda.Start(app.handler)
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	cidpif "github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
-	util "github.com/seanturner026/serverless-release-dashboard/internal/util"
+	"github.com/seanturner026/serverless-release-dashboard/internal/util"
 )
 
 type application struct {
