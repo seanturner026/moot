@@ -82,15 +82,16 @@ func (app githubController) CreateRelease(e releaseEvent) error {
 	return nil
 }
 
-func (app application) releasesGithubHandler(e releaseEvent) (string, error) {
+func (app application) releasesGithubHandler(e releaseEvent) (string, int) {
 	var err error
 	if !e.Hotfix {
 		prResp, err := app.gh.CreatePullRequest(e)
 		if err != nil {
-			message := fmt.Sprintf("Could not create Github pull request for %v version %v, please check github for furhter details.",
+			message := fmt.Sprintf("Could not create Github pull request for %v version %v, please check github for further details.",
 				e.RepoName,
 				e.ReleaseVersion)
-			return message, err
+			statusCode := 400
+			return message, statusCode
 		}
 
 		mergeResp, err := app.gh.MergePullRequest(*prResp.Number, e)
@@ -99,7 +100,8 @@ func (app application) releasesGithubHandler(e releaseEvent) (string, error) {
 				*prResp.Number,
 				e.RepoName,
 				e.ReleaseVersion)
-			return message, err
+			statusCode := 400
+			return message, statusCode
 		}
 
 		if !*mergeResp.Merged {
@@ -108,7 +110,8 @@ func (app application) releasesGithubHandler(e releaseEvent) (string, error) {
 				*prResp.Number,
 				e.RepoName,
 				e.ReleaseVersion)
-			return message, err
+			statusCode := 400
+			return message, statusCode
 		}
 	}
 
@@ -117,8 +120,13 @@ func (app application) releasesGithubHandler(e releaseEvent) (string, error) {
 		message := fmt.Sprintf("Unable to create %v release version %v on Github.",
 			e.RepoName,
 			e.ReleaseVersion)
-		return message, err
+		statusCode := 400
+		return message, statusCode
 	}
 
-	return "", nil
+	message := fmt.Sprintf("Created %v release version %v on Github.",
+		e.RepoName,
+		e.ReleaseVersion)
+	statusCode := 200
+	return message, statusCode
 }

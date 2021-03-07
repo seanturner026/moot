@@ -56,18 +56,18 @@ func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.API
 
 	if event.RawPath == "/repositories/create" {
 		log.Printf("[INFO] handling request on %v", event.RawPath)
-		resp = app.repositoriesCreateHandler(event, headers)
-		return resp, nil
+		message, statusCode := app.repositoriesCreateHandler(event)
+		return util.GenerateResponseBody(message, statusCode, nil, headers, []string{}), nil
 
 	} else if event.RawPath == "/repositories/delete" {
 		log.Printf("[INFO] handling request on %v", event.RawPath)
-		resp = app.repositoriesDeleteHandler(event, headers)
-		return resp, nil
+		message, statusCode := app.repositoriesDeleteHandler(event)
+		return util.GenerateResponseBody(message, statusCode, nil, headers, []string{}), nil
 
 	} else if event.RawPath == "/repositories/list" {
 		log.Printf("[INFO] handling request on %v", event.RawPath)
-		resp = app.repositoriesListHandler(event, headers)
-		return resp, nil
+		message, statusCode := app.repositoriesListHandler(event)
+		return util.GenerateResponseBody(message, statusCode, nil, headers, []string{}), nil
 
 	} else {
 		log.Printf("[ERROR] path %v does not exist", event.RawPath)

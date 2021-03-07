@@ -51,6 +51,8 @@ func (app gitlabController) pollMergeRequestStatus(e releaseEvent, mergeRequestI
 		}
 		if resp.MergeStatus == "can_be_merged" {
 			return nil
+		} else if resp.MergeStatus == "cannot_be_merged" {
+			return errors.New("merge request has merge conflicts")
 		}
 	}
 
@@ -92,13 +94,14 @@ func (app gitlabController) createRelease(e releaseEvent) error {
 	return nil
 }
 
-func (app application) releasesGitlabHandler(e releaseEvent) (string, error) {
+func (app application) releasesGitlabHandler(e releaseEvent) (string, int) {
 	var err error
 	if !e.Hotfix {
 		createMergeRequestResp, err := app.gl.createMergeRequest(e)
 		if err != nil {
 			message := fmt.Sprintf("Unable to create %v merge request, please check the merge request on gitlab for further details", e.RepoName)
-			return message, err
+			statusCode := 400
+			return message, statusCode
 		}
 
 		err = app.gl.pollMergeRequestStatus(e, createMergeRequestResp.IID)
@@ -106,7 +109,8 @@ func (app application) releasesGitlabHandler(e releaseEvent) (string, error) {
 			message := fmt.Sprintf("Unable to merge %v merge request %v, please check the merge request on gitlab for further details",
 				e.RepoName,
 				createMergeRequestResp.IID)
-			return message, err
+			statusCode := 400
+			return message, statusCode
 		}
 
 		err = app.gl.acceptMergeRequest(e, createMergeRequestResp.IID)
@@ -114,14 +118,21 @@ func (app application) releasesGitlabHandler(e releaseEvent) (string, error) {
 			message := fmt.Sprintf("Unable to complete %v merge request %v, please check the merge request on gitlab for further details",
 				e.RepoName,
 				createMergeRequestResp.IID)
-			return message, err
+			statusCode := 400
+			return message, statusCode
 		}
 	}
 
 	err = app.gl.createRelease(e)
 	if err != nil {
-		return fmt.Sprintf("Unable to create %v release", e.RepoName), err
+		message := fmt.Sprintf("Unable to create %v release", e.RepoName)
+		statusCode := 400
+		return message, statusCode
 	}
 
-	return "", nil
+	message := fmt.Sprintf("Created %v release version %v on Gitlab.",
+		e.RepoName,
+		e.ReleaseVersion)
+	statusCode := 200
+	return message, statusCode
 }

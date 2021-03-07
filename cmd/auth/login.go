@@ -79,7 +79,7 @@ func (app application) loginUser(e userAuthEvent, input *cidp.InitiateAuthInput)
 	return loginUserResp, nil
 }
 
-func (app application) authLoginHandler(event events.APIGatewayV2HTTPRequest, headers map[string]string) events.APIGatewayV2HTTPResponse {
+func (app application) authLoginHandler(event events.APIGatewayV2HTTPRequest, headers map[string]string) (string, int, map[string]string) {
 	e := userAuthEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
 	if err != nil {
@@ -90,23 +90,25 @@ func (app application) authLoginHandler(event events.APIGatewayV2HTTPRequest, he
 	input := app.generateAuthInput(e, event.RawPath, secretHash)
 	loginUserResp, err := app.loginUser(e, input)
 	if err != nil {
-		resp := util.GenerateResponseBody(fmt.Sprintf("Error authorizing user %v in", e.EmailAddress), 404, err, headers, []string{})
-		return resp
+		message := fmt.Sprintf("Error authenticating user %v", e.EmailAddress)
+		statusCode := 400
+		return message, statusCode, headers
 
 	} else if loginUserResp.NewPasswordRequired {
 		headers["X-Session-Id"] = loginUserResp.SessionID
-		resp := util.GenerateResponseBody(
-			fmt.Sprintf("User %v authorized successfully, password change required", e.EmailAddress), 200, err, headers, []string{},
-		)
-		return resp
+		message := fmt.Sprintf("User %v authorized successfully, password change required", e.EmailAddress)
+		statusCode := 200
+		return message, statusCode, headers
 	}
 
 	// cookies := []string{
 	// 	fmt.Sprintf("Bearer %v; Secure; HttpOnly; SameSite=Strict; Expires=%v", loginUserResp.AccessToken, loginUserResp.ExpiresAt),
 	// 	fmt.Sprintf("X-Refresh-Token %v", loginUserResp.RefreshToken),
 	// }
+
 	headers["Authorization"] = fmt.Sprintf("Bearer %v", loginUserResp.AccessToken)
 	headers["X-Refresh-Token"] = loginUserResp.RefreshToken
-	resp := util.GenerateResponseBody(fmt.Sprintf("User %v authorized successfully", e.EmailAddress), 200, err, headers, []string{})
-	return resp
+	message := fmt.Sprintf("User %v authorized successfully", e.EmailAddress)
+	statusCode := 200
+	return message, statusCode, headers
 }

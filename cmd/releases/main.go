@@ -84,33 +84,26 @@ func (app awsController) updateCurrentVersion(e releaseEvent) error {
 
 // handler executes the release and notification workflow
 func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
+	headers := map[string]string{"Content-Type": "application/json"}
 	e := releaseEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
 	if err != nil {
 		log.Printf("[ERROR] %v", err)
 	}
 
-	var resp events.APIGatewayV2HTTPResponse
 	var message string
-	headers := map[string]string{"Content-Type": "application/json"}
-
+	var statusCode int
 	if event.RawPath == "/releases/create/github" {
 		log.Printf("[INFO] handling request on %v", event.RawPath)
-		message, err = app.releasesGithubHandler(e)
+		message, statusCode = app.releasesGithubHandler(e)
 
 	} else if event.RawPath == "/releases/create/gitlab" {
 		log.Printf("[INFO] handling request on %v", event.RawPath)
-		message, err = app.releasesGitlabHandler(e)
+		message, statusCode = app.releasesGitlabHandler(e)
 
 	} else {
 		log.Printf("[ERROR] path %v does not exist", event.RawPath)
-		resp = util.GenerateResponseBody(fmt.Sprintf("Path does not exist %v", event.RawPath), 404, nil, headers, []string{})
-		return resp, nil
-	}
-
-	if err != nil {
-		resp = util.GenerateResponseBody(message, 200, err, headers, []string{})
-		return resp, nil
+		return util.GenerateResponseBody(fmt.Sprintf("Path does not exist %v", event.RawPath), 404, nil, headers, []string{}), nil
 	}
 
 	if app.Config.SlackWebhookURL != "" {
@@ -121,21 +114,20 @@ func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.API
 			e.ReleaseBody,
 		))
 		if err != nil {
-			message = fmt.Sprintf("Released %v version %v successfully, unable to send slack notification and update latest version in backend", e.RepoName, e.ReleaseVersion)
-			resp = util.GenerateResponseBody(message, 200, err, headers, []string{})
-			return resp, nil
+			message := fmt.Sprintf("Released %v version %v successfully, unable to send slack notification and update latest version in backend", e.RepoName, e.ReleaseVersion)
+			statusCode := 200
+			return util.GenerateResponseBody(message, statusCode, nil, headers, []string{}), nil
 		}
 	}
 
 	err = app.aws.updateCurrentVersion(e)
 	if err != nil {
-		message = fmt.Sprintf("Released %v version %v successfully, unable to update latest version in backend", e.RepoName, e.ReleaseVersion)
-		resp = util.GenerateResponseBody(message, 200, err, headers, []string{})
-		return resp, nil
+		message := fmt.Sprintf("Released %v version %v successfully, unable to update latest version in backend", e.RepoName, e.ReleaseVersion)
+		statusCode := 200
+		return util.GenerateResponseBody(message, statusCode, err, headers, []string{}), nil
 	}
 
-	resp = util.GenerateResponseBody(message, 200, err, headers, []string{})
-	return resp, nil
+	return util.GenerateResponseBody(message, statusCode, err, headers, []string{}), nil
 }
 
 func main() {

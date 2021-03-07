@@ -9,7 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
-	"github.com/seanturner026/serverless-release-dashboard/internal/util"
 )
 
 type createUserEvent struct {
@@ -42,7 +41,7 @@ func (app application) createUser(e createUserEvent) error {
 	return nil
 }
 
-func (app application) usersCreateHandler(event events.APIGatewayV2HTTPRequest, headers map[string]string) events.APIGatewayV2HTTPResponse {
+func (app application) usersCreateHandler(event events.APIGatewayV2HTTPRequest) (string, int) {
 	e := createUserEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
 	if err != nil {
@@ -51,10 +50,12 @@ func (app application) usersCreateHandler(event events.APIGatewayV2HTTPRequest, 
 
 	err = app.createUser(e)
 	if err != nil {
-		resp := util.GenerateResponseBody(fmt.Sprintf("Error creating user %v", e.EmailAddress), 404, err, headers, []string{})
-		return resp
+		message := fmt.Sprintf("Error creating user account for %v", e.EmailAddress)
+		statusCode := 400
+		return message, statusCode
 	}
 
-	resp := util.GenerateResponseBody(fmt.Sprintf("Created new user %v", e.EmailAddress), 200, nil, headers, []string{})
-	return resp
+	message := fmt.Sprintf("Created user account for %v", e.EmailAddress)
+	statusCode := 200
+	return message, statusCode
 }

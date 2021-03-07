@@ -44,7 +44,7 @@ func (app application) resetPassword(e resetPasswordEvent, secretHash string) (s
 	return *resp.AuthenticationResult.AccessToken, nil
 }
 
-func (app application) authResetPasswordHandler(event events.APIGatewayV2HTTPRequest, headers map[string]string) events.APIGatewayV2HTTPResponse {
+func (app application) authResetPasswordHandler(event events.APIGatewayV2HTTPRequest, headers map[string]string) (string, int, map[string]string) {
 	e := resetPasswordEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
 	if err != nil {
@@ -54,11 +54,13 @@ func (app application) authResetPasswordHandler(event events.APIGatewayV2HTTPReq
 	secretHash := util.GenerateSecretHash(app.config.ClientPoolSecret, e.EmailAddress, app.config.ClientPoolID)
 	AccessToken, err := app.resetPassword(e, secretHash)
 	if err != nil {
-		resp := util.GenerateResponseBody(fmt.Sprintf("Error changing user %v password", e.EmailAddress), 404, err, headers, []string{})
-		return resp
+		message := fmt.Sprintf("Error changing user %v password", e.EmailAddress)
+		statusCode := 400
+		return message, statusCode, headers
 	}
 
 	headers["Authorization"] = fmt.Sprintf("Bearer %v", AccessToken)
-	resp := util.GenerateResponseBody(fmt.Sprintf("User %v changed password successfully", e.EmailAddress), 200, err, headers, []string{})
-	return resp
+	message := fmt.Sprintf("User %v changed password successfully", e.EmailAddress)
+	statusCode := 200
+	return message, statusCode, headers
 }

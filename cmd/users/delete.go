@@ -10,7 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
-	"github.com/seanturner026/serverless-release-dashboard/internal/util"
 )
 
 type deleteUserEvent struct {
@@ -35,7 +34,7 @@ func (app application) deleteUser(e deleteUserEvent) error {
 	return nil
 }
 
-func (app application) usersDeleteHandler(event events.APIGatewayV2HTTPRequest, headers map[string]string) events.APIGatewayV2HTTPResponse {
+func (app application) usersDeleteHandler(event events.APIGatewayV2HTTPRequest) (string, int) {
 	e := deleteUserEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
 	if err != nil {
@@ -44,10 +43,12 @@ func (app application) usersDeleteHandler(event events.APIGatewayV2HTTPRequest, 
 
 	err = app.deleteUser(e)
 	if err != nil {
-		resp := util.GenerateResponseBody(fmt.Sprintf("Error deleting user %v", e.EmailAddress), 404, err, headers, []string{})
-		return resp
+		message := fmt.Sprintf("Error deleting user %v, please refresh and try again.", e.EmailAddress)
+		statusCode := 400
+		return message, statusCode
 	}
 
-	resp := util.GenerateResponseBody(fmt.Sprintf("Deleted user %v", e.EmailAddress), 200, nil, headers, []string{})
-	return resp
+	message := fmt.Sprintf("Deleted user %v", e.EmailAddress)
+	statusCode := 200
+	return message, statusCode
 }

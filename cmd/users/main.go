@@ -28,18 +28,18 @@ func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.API
 
 	if event.RawPath == "/users/create" {
 		log.Printf("[INFO] handling request on %v", event.RawPath)
-		resp = app.usersCreateHandler(event, headers)
-		return resp, nil
+		message, statusCode := app.usersCreateHandler(event)
+		return util.GenerateResponseBody(message, statusCode, nil, headers, []string{}), nil
 
 	} else if event.RawPath == "/users/delete" {
 		log.Printf("[INFO] handling request on %v", event.RawPath)
-		resp = app.usersDeleteHandler(event, headers)
-		return resp, nil
+		message, statusCode := app.usersDeleteHandler(event)
+		return util.GenerateResponseBody(message, statusCode, nil, headers, []string{}), nil
 
 	} else if event.RawPath == "/users/list" {
 		log.Printf("[INFO] handling request on %v", event.RawPath)
-		resp = app.usersListHandler(event, headers)
-		return resp, nil
+		message, statusCode := app.usersListHandler(event)
+		return util.GenerateResponseBody(message, statusCode, nil, headers, []string{}), nil
 
 	} else {
 		log.Printf("[ERROR] path %v does not exist", event.RawPath)

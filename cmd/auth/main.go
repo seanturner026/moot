@@ -25,23 +25,21 @@ type configuration struct {
 }
 
 func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
-	var resp events.APIGatewayV2HTTPResponse
 	headers := map[string]string{"Content-Type": "application/json"}
 
 	if event.RawPath == "/auth/login" || event.RawPath == "/auth/refresh/token" {
 		log.Printf("[INFO] handling request on %v", event.RawPath)
-		resp = app.authLoginHandler(event, headers)
-		return resp, nil
+		message, statusCode, headers := app.authLoginHandler(event, headers)
+		return util.GenerateResponseBody(message, statusCode, nil, headers, []string{}), nil
 
 	} else if event.RawPath == "/auth/reset/password" {
 		log.Printf("[INFO] handling request on %v", event.RawPath)
-		resp = app.authResetPasswordHandler(event, headers)
-		return resp, nil
+		message, statusCode, headers := app.authResetPasswordHandler(event, headers)
+		return util.GenerateResponseBody(message, statusCode, nil, headers, []string{}), nil
 
 	} else {
 		log.Printf("[ERROR] path %v does not exist", event.RawPath)
-		resp = util.GenerateResponseBody(fmt.Sprintf("Path does not exist %v", event.RawPath), 404, nil, headers, []string{})
-		return resp, nil
+		return util.GenerateResponseBody(fmt.Sprintf("Path does not exist %v", event.RawPath), 404, nil, headers, []string{}), nil
 	}
 }
 

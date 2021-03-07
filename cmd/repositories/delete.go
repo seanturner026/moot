@@ -10,7 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/seanturner026/serverless-release-dashboard/internal/util"
 )
 
 type deleteRepositoriesEvent struct {
@@ -70,7 +69,7 @@ func (app awsController) deleteRepositories(requestItems []*dynamodb.WriteReques
 	return nil
 }
 
-func (app application) repositoriesDeleteHandler(event events.APIGatewayV2HTTPRequest, headers map[string]string) events.APIGatewayV2HTTPResponse {
+func (app application) repositoriesDeleteHandler(event events.APIGatewayV2HTTPRequest) (string, int) {
 	e := deleteRepositoriesEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
 	if err != nil {
@@ -79,10 +78,12 @@ func (app application) repositoriesDeleteHandler(event events.APIGatewayV2HTTPRe
 
 	err = app.aws.stageBatchWrites(e)
 	if err != nil {
-		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to delete repos %v, %v", e, err), 404, err, headers, []string{})
-		return resp
+		message := "Failed to delete repositories"
+		statusCode := 400
+		return message, statusCode
 	}
 
-	resp := util.GenerateResponseBody(fmt.Sprintf("Deleted repos %v successfully", e), 200, err, headers, []string{})
-	return resp
+	message := "Deleted repositories successfully"
+	statusCode := 200
+	return message, statusCode
 }

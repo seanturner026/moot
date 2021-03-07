@@ -10,7 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
-	"github.com/seanturner026/serverless-release-dashboard/internal/util"
 	"github.com/xanzy/go-gitlab"
 )
 
@@ -68,7 +67,7 @@ func (app awsController) writeRepoToDB(e createRepoEvent, itemInput map[string]*
 	return nil
 }
 
-func (app application) repositoriesCreateHandler(event events.APIGatewayV2HTTPRequest, headers map[string]string) events.APIGatewayV2HTTPResponse {
+func (app application) repositoriesCreateHandler(event events.APIGatewayV2HTTPRequest) (string, int) {
 	e := createRepoEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
 	if err != nil {
@@ -82,22 +81,26 @@ func (app application) repositoriesCreateHandler(event events.APIGatewayV2HTTPRe
 	}
 
 	if err != nil {
-		resp := util.GenerateResponseBody(fmt.Sprintf("Provided %s token is unable to access %s", e.RepoProvider, e.RepoName), 404, err, headers, []string{})
-		return resp
+		message := fmt.Sprintf("Provided %s token is unable to access repository %s", e.RepoProvider, e.RepoName)
+		statusCode := 401
+		return message, statusCode
 	}
 
 	e, itemInput, err := generatePutItemInput(e)
 	if err != nil {
-		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to stage provided information for loading into DynamoDB for ID %s, %v", e.RepoName, err), 404, err, headers, []string{})
-		return resp
+		message := fmt.Sprintf("Failed to stage provided information for loading into DynamoDB for ID %s", e.RepoName)
+		statusCode := 400
+		return message, statusCode
 	}
 
 	err = app.aws.writeRepoToDB(e, itemInput)
 	if err != nil {
-		resp := util.GenerateResponseBody(fmt.Sprintf("Failed to write record %s to DynamoDB table, %v", e.RepoName, err), 404, err, headers, []string{})
-		return resp
+		message := fmt.Sprintf("Failed to write record %s to DynamoDB table", e.RepoName)
+		statusCode := 400
+		return message, statusCode
 	}
 
-	resp := util.GenerateResponseBody(fmt.Sprintf("Wrote record %s to DynamoDB successfully", e.RepoName), 200, nil, headers, []string{})
-	return resp
+	message := fmt.Sprintf("Wrote record %s to DynamoDB successfully", e.RepoName)
+	statusCode := 200
+	return message, statusCode
 }

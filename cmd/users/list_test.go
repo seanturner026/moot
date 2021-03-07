@@ -47,18 +47,22 @@ func TestGenerateListUsersResponse(t *testing.T) {
 					{
 						Attributes: []*cidp.AttributeType{{
 							Value: aws.String("example1"),
-						}}},
+						}},
+						Username: aws.String("1234-1234-1234-1234"),
+					},
 					{
 						Attributes: []*cidp.AttributeType{{
 							Value: aws.String("example2"),
-						}}},
+						}},
+						Username: aws.String("1234-1234-1234-1234"),
+					},
 				},
 			},
 			Error: nil,
 		}
 
 		listUsersResponse := generateListUsersResponse(idpMock.Response.Users)
-		if listUsersResponse.Users[0].Name != "example1" || listUsersResponse.Users[1].Name != "example2" {
+		if listUsersResponse.Users[0].Email != "example1" || listUsersResponse.Users[1].Email != "example2" {
 			t.Fatal("Usernames should have been written to listUsersResponse")
 		}
 	})
@@ -73,15 +77,19 @@ func TestAppendUserToResponse(t *testing.T) {
 					Attributes: []*cidp.AttributeType{{
 						Value: aws.String("example"),
 					}},
+					Username: aws.String("1234-1234-1234-1234"),
 				}},
 			},
 			Error: nil,
 		}
 
 		listUsersResponseMock := &listUsersResponse{}
-		userNameMock := userName{Name: *idpMock.Response.Users[0].Attributes[0].Value}
+		userNameMock := user{
+			Email: *idpMock.Response.Users[0].Attributes[0].Value,
+			ID:    *idpMock.Response.Users[0].Username,
+		}
 		listUsersResponseMock.appendUserToResponse(userNameMock)
-		if listUsersResponseMock.Users[0].Name != "example" {
+		if listUsersResponseMock.Users[0].Email != "example" {
 			t.Fatal("Username should have been appended")
 		}
 	})

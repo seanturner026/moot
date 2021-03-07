@@ -9,15 +9,15 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
-	"github.com/seanturner026/serverless-release-dashboard/internal/util"
 )
 
 type listUsersResponse struct {
-	Users []userName
+	Users []user
 }
 
-type userName struct {
-	Name string `json:"name"`
+type user struct {
+	Email string `json:"name"`
+	ID    string `json:"id"`
 }
 
 func (app application) listUsers() (cidp.ListUsersOutput, error) {
@@ -43,40 +43,39 @@ func (app application) listUsers() (cidp.ListUsersOutput, error) {
 
 func generateListUsersResponse(users []*cidp.UserType) listUsersResponse {
 	userNames := &listUsersResponse{}
-	for _, user := range users {
-		userName := userName{Name: *user.Attributes[0].Value}
+	for _, u := range users {
+		userName := user{
+			Email: *u.Attributes[0].Value,
+			ID:    *u.Username,
+		}
 		userNames.appendUserToResponse(userName)
 	}
 	return *userNames
 }
 
-func (userNames *listUsersResponse) appendUserToResponse(user userName) {
-	userNames.Users = append(userNames.Users, user)
+func (userNames *listUsersResponse) appendUserToResponse(u user) {
+	userNames.Users = append(userNames.Users, u)
 }
 
-func (app application) usersListHandler(event events.APIGatewayV2HTTPRequest, headers map[string]string) events.APIGatewayV2HTTPResponse {
+func (app application) usersListHandler(event events.APIGatewayV2HTTPRequest) (string, int) {
 
 	listUsersResp, err := app.listUsers()
 	if err != nil || len(listUsersResp.Users) == 0 {
-		resp := util.GenerateResponseBody("Unable to populate list of users", 404, err, headers, []string{})
-		return resp
+		message := "Unable to query list of users"
+		statusCode := 400
+		return message, statusCode
 	}
 
 	userNames := generateListUsersResponse(listUsersResp.Users)
+
 	body, err := json.Marshal(userNames.Users)
 	statusCode := 200
 	if err != nil {
 		log.Printf("[ERROR] Unable to marshal json for response, %v", err)
-		statusCode = 404
+		statusCode = 400
 	}
 
 	var buf bytes.Buffer
 	json.HTMLEscape(&buf, body)
-	resp := events.APIGatewayV2HTTPResponse{
-		StatusCode:      statusCode,
-		Headers:         headers,
-		Body:            buf.String(),
-		IsBase64Encoded: false,
-	}
-	return resp
+	return buf.String(), statusCode
 }
