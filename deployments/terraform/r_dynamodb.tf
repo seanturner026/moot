@@ -14,17 +14,5 @@ resource "aws_dynamodb_table" "this" {
     type = "S"
   }
 
-  attribute {
-    name = "RepoProvider"
-    type = "S"
-  }
-
-  global_secondary_index {
-    name            = var.global_secondary_index_name
-    hash_key        = "SK"
-    range_key       = "RepoProvider"
-    projection_type = "ALL"
-  }
-
   tags = var.tags
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -10,17 +11,40 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/google/go-github/github"
 	"github.com/xanzy/go-gitlab"
+	"golang.org/x/oauth2"
 )
 
 type createRepoEvent struct {
-	Type            string `dynamodbav:"PK" json:"type"`
+	TenantID        string `dynamodbav:"PK" json:"tenant_id,omitempty"`
 	RepoProvider    string `dynamodbav:"SK" json:"repo_provider"`
 	RepoName        string `dynamodbav:"-" json:"repo_name"`
 	RepoOwner       string `dynamodbav:"RepoOwner" json:"repo_owner"`
 	BranchBase      string `dynamodbav:"BranchBase" json:"branch_base"`
 	BranchHead      string `dynamodbav:"BranchHead" json:"branch_head"`
 	GitlabProjectID string `dynamodbav:"GitlabProjectID,omitempty" json:"gitlab_repo_id,omitempty"`
+}
+
+func (app awsController) getProviderToken(e createRepoEvent, tenantID string) (string, error) {
+	input := &ssm.GetParameterInput{
+		Name:           aws.String(fmt.Sprintf("/deploy_tower/%s/%s/token", tenantID, e.RepoProvider)),
+		WithDecryption: aws.Bool(true),
+	}
+
+	resp, err := app.ssm.GetParameter(input)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			log.Printf("[ERROR] %v", aerr.Error())
+		} else {
+			log.Printf("[ERROR] %v", err.Error())
+		}
+		return "", err
+	}
+
+	token := *resp.Parameter.Value
+	return token, nil
 }
 
 func (app githubController) confirmTokenAccess(e createRepoEvent) error {
@@ -40,6 +64,7 @@ func (app gitlabController) confirmTokenAccess(e createRepoEvent) error {
 }
 
 func generatePutItemInput(e createRepoEvent) (createRepoEvent, map[string]*dynamodb.AttributeValue, error) {
+	e.TenantID = fmt.Sprintf("org#%v#repo", e.TenantID)
 	e.RepoProvider = fmt.Sprintf("%s#%s", e.RepoProvider, e.RepoName)
 	itemInput, err := dynamodbattribute.MarshalMap(e)
 	if err != nil {
@@ -67,23 +92,49 @@ func (app awsController) writeRepoToDB(e createRepoEvent, itemInput map[string]*
 	return nil
 }
 
-func (app application) repositoriesCreateHandler(event events.APIGatewayV2HTTPRequest) (string, int) {
+func (app application) repositoriesCreateHandler(event events.APIGatewayV2HTTPRequest, tenantID string) (string, int) {
 	e := createRepoEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
 	if err != nil {
 		log.Printf("[ERROR] %v", err)
 	}
-
-	if e.RepoProvider == "github.com" {
-		err = app.gh.confirmTokenAccess(e)
-	} else if e.RepoProvider == "gitlab.com" {
-		err = app.gl.confirmTokenAccess(e)
+	e.TenantID = tenantID
+	token, err := app.aws.getProviderToken(e, tenantID)
+	if err != nil {
+		message := fmt.Sprintf("Unable to onboard %s, please double check that the token has read/write access to this repository", e.RepoName)
+		statusCode := 400
+		return message, statusCode
 	}
 
-	if err != nil {
-		message := fmt.Sprintf("Provided %s token is unable to access repository %s", e.RepoProvider, e.RepoName)
-		statusCode := 401
-		return message, statusCode
+	if e.RepoProvider == "github.com" {
+		githubCtx := context.Background()
+		ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
+		tc := oauth2.NewClient(githubCtx, ts)
+
+		app.gh = githubController{
+			Client:    github.NewClient(tc),
+			GithubCtx: githubCtx,
+		}
+		err = app.gh.confirmTokenAccess(e)
+		if err != nil {
+			message := fmt.Sprintf("Provided %s token is unable to access repository %s", e.RepoProvider, e.RepoName)
+			statusCode := 401
+			return message, statusCode
+		}
+	} else if e.RepoProvider == "gitlab.com" {
+		clientGitlab, err := gitlab.NewClient(token)
+		if err != nil {
+			log.Fatalf("Failed to create client: %v", err)
+		}
+		app.gl = gitlabController{
+			Client: clientGitlab,
+		}
+		err = app.gl.confirmTokenAccess(e)
+		if err != nil {
+			message := fmt.Sprintf("Provided %s token is unable to access repository %s", e.RepoProvider, e.RepoName)
+			statusCode := 401
+			return message, statusCode
+		}
 	}
 
 	e, itemInput, err := generatePutItemInput(e)

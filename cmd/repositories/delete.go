@@ -13,6 +13,7 @@ import (
 )
 
 type deleteRepositoriesEvent struct {
+	TenantID     string       `dynamodbav:"PK" json:"tenant_id,omitempty"`
 	Repositories []repository `json:"repositories"`
 }
 
@@ -27,7 +28,7 @@ func (app awsController) stageBatchWrites(e deleteRepositoriesEvent) error {
 			DeleteRequest: &dynamodb.DeleteRequest{
 				Key: map[string]*dynamodb.AttributeValue{
 					"PK": {
-						S: aws.String("repo"),
+						S: aws.String(fmt.Sprintf("org#%v#repo", e.TenantID)),
 					},
 					"SK": {
 						S: aws.String(fmt.Sprintf("%s#%s", r.RepoProvider, r.RepoName)),
@@ -69,12 +70,13 @@ func (app awsController) deleteRepositories(requestItems []*dynamodb.WriteReques
 	return nil
 }
 
-func (app application) repositoriesDeleteHandler(event events.APIGatewayV2HTTPRequest) (string, int) {
+func (app application) repositoriesDeleteHandler(event events.APIGatewayV2HTTPRequest, tenantID string) (string, int) {
 	e := deleteRepositoriesEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
 	if err != nil {
 		log.Printf("[ERROR] %v", err)
 	}
+	e.TenantID = tenantID
 
 	err = app.aws.stageBatchWrites(e)
 	if err != nil {

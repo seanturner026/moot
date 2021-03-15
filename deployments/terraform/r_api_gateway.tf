@@ -5,7 +5,7 @@ resource "aws_apigatewayv2_api" "this" {
 
   cors_configuration {
     allow_credentials = true
-    allow_headers     = ["Content-Type", "Authorization", "X-Session-Id"]
+    allow_headers     = ["Content-Type", "Authorization", "X-Session-Id", "X-Identity-Token"]
     allow_methods     = ["GET", "OPTIONS", "POST"]
     allow_origins     = ["http://localhost:8080", var.dev_cloudfront_dns]
     max_age           = 600

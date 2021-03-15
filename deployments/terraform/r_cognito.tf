@@ -12,6 +12,19 @@ resource "aws_cognito_user_pool" "this" {
     temporary_password_validity_days = 1
   }
 
+  schema {
+    name                     = "tenant_id"
+    attribute_data_type      = "String"
+    mutable                  = true
+    required                 = false
+    developer_only_attribute = false
+
+    string_attribute_constraints {
+      max_length = "256"
+      min_length = "1"
+    }
+  }
+
   tags = var.tags
 }
 
@@ -19,12 +32,20 @@ resource "aws_cognito_user_pool_client" "this" {
   name                                 = var.tags.name
   user_pool_id                         = aws_cognito_user_pool.this.id
   generate_secret                      = true
-  allowed_oauth_flows                  = ["implicit"]
+  allowed_oauth_flows                  = ["code", "implicit"]
   allowed_oauth_flows_user_pool_client = true
   allowed_oauth_scopes                 = ["email", "openid"]
-  explicit_auth_flows                  = ["ALLOW_USER_PASSWORD_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"]
-  supported_identity_providers         = ["COGNITO"]
-  callback_urls                        = ["https://localhost:3000"]
+  explicit_auth_flows = [
+    "ALLOW_ADMIN_USER_PASSWORD_AUTH",
+    "ALLOW_CUSTOM_AUTH",
+    "ALLOW_REFRESH_TOKEN_AUTH",
+    "ALLOW_USER_PASSWORD_AUTH",
+    "ALLOW_USER_SRP_AUTH",
+  ]
+  supported_identity_providers = ["COGNITO"]
+  callback_urls                = ["https://localhost:3000"]
+  read_attributes              = ["custom:tenant_id"]
+  write_attributes             = ["custom:tenant_id"]
 }
 
 resource "aws_cognito_identity_pool" "this" {

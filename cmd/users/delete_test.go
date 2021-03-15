@@ -17,7 +17,7 @@ func (m mockAdminDeleteUser) AdminDeleteUser(*cidp.AdminDeleteUserInput) (*cidp.
 	return m.Response, nil
 }
 
-func TestDeleteUser(t *testing.T) {
+func TestDeleteUserFromCognito(t *testing.T) {
 	t.Run("Successfully delete user", func(t *testing.T) {
 		idpMock := mockAdminDeleteUser{
 			Response: &cidp.AdminDeleteUserOutput{},
@@ -29,7 +29,7 @@ func TestDeleteUser(t *testing.T) {
 			idp:        idpMock,
 		}}
 
-		err := app.deleteUser(deleteUserEvent{EmailAddress: "user@example.com"})
+		err := app.deleteUserFromCognito(deleteUserEvent{EmailAddress: "user@example.com"})
 		if err != nil {
 			t.Fatal("User should have been deleted")
 		}

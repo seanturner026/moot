@@ -9,13 +9,14 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
 type createUserEvent struct {
 	EmailAddress string `json:"email_address"`
 }
 
-func (app application) createUser(e createUserEvent) error {
+func (app application) createUser(e createUserEvent, tenantID string) (string, error) {
 	input := &cidp.AdminCreateUserInput{
 		UserPoolId:             aws.String(app.config.UserPoolID),
 		Username:               aws.String(e.EmailAddress),
@@ -26,9 +27,48 @@ func (app application) createUser(e createUserEvent) error {
 				Name:  aws.String("email"),
 				Value: aws.String(e.EmailAddress),
 			},
+			{
+				Name:  aws.String("custom:tenant_id"),
+				Value: aws.String(tenantID),
+			},
 		},
 	}
-	_, err := app.config.idp.AdminCreateUser(input)
+	resp, err := app.config.idp.AdminCreateUser(input)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			log.Printf("[ERROR] %v", aerr.Error())
+		} else {
+			log.Printf("[ERROR] %v", err.Error())
+		}
+		return "", err
+	}
+	log.Printf("[INFO] Created new user %v successfully", e.EmailAddress)
+	userID := *resp.User.Username
+	return userID, nil
+}
+
+func (app application) writeUserToDynamoDB(e createUserEvent, tenantID, userID string) error {
+	input := &dynamodb.PutItemInput{
+		Item: map[string]*dynamodb.AttributeValue{
+			"PK": {
+				S: aws.String(fmt.Sprintf("org#%s#user", tenantID)),
+			},
+			"SK": {
+				S: aws.String(e.EmailAddress),
+			},
+			"Enabled": {
+				BOOL: aws.Bool(true),
+			},
+			"ID": {
+				S: aws.String(userID),
+			},
+		},
+		ReturnConsumedCapacity:      aws.String("NONE"),
+		ReturnItemCollectionMetrics: aws.String("NONE"),
+		ReturnValues:                aws.String("NONE"),
+		TableName:                   aws.String(app.config.TableName),
+	}
+	_, err := app.config.db.PutItem(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			log.Printf("[ERROR] %v", aerr.Error())
@@ -37,18 +77,25 @@ func (app application) createUser(e createUserEvent) error {
 		}
 		return err
 	}
-	log.Printf("[INFO] Created new user %v successfully", e.EmailAddress)
 	return nil
 }
 
-func (app application) usersCreateHandler(event events.APIGatewayV2HTTPRequest) (string, int) {
+func (app application) usersCreateHandler(event events.APIGatewayV2HTTPRequest, tenantID string) (string, int) {
 	e := createUserEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
 	if err != nil {
 		log.Printf("[ERROR] %v", err)
 	}
 
-	err = app.createUser(e)
+	userID, err := app.createUser(e, tenantID)
+	if err != nil {
+		message := fmt.Sprintf("Error creating user account for %v", e.EmailAddress)
+		statusCode := 400
+		return message, statusCode
+	}
+
+	// note(SMT): This needs to send a notification if it fails
+	err = app.writeUserToDynamoDB(e, tenantID, userID)
 	if err != nil {
 		message := fmt.Sprintf("Error creating user account for %v", e.EmailAddress)
 		statusCode := 400

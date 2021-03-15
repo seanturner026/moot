@@ -55,6 +55,7 @@ func TestLoginUser(t *testing.T) {
 				ChallengeName: nil,
 				AuthenticationResult: &cidp.AuthenticationResultType{
 					AccessToken:  aws.String("test"),
+					IdToken:      aws.String("test"),
 					RefreshToken: aws.String("test"),
 					ExpiresIn:    aws.Int64(1),
 				},
@@ -87,6 +88,7 @@ func TestLoginUser(t *testing.T) {
 				ChallengeName: nil,
 				AuthenticationResult: &cidp.AuthenticationResultType{
 					AccessToken:  aws.String("test"),
+					IdToken:      aws.String("test"),
 					RefreshToken: aws.String("test"),
 					ExpiresIn:    aws.Int64(1),
 				},

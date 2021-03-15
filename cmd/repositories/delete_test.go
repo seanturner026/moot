@@ -30,9 +30,12 @@ func TestStageBatchWrites(t *testing.T) {
 			db:        dbMock,
 		}}
 
-		event := deleteRepositoriesEvent{Repositories: []repository{
-			{RepoName: "test", RepoOwner: "test"},
-		}}
+		event := deleteRepositoriesEvent{
+			Repositories: []repository{{
+				RepoName: "test",
+			}},
+			TenantID: "test",
+		}
 
 		err := app.aws.stageBatchWrites(event)
 		if err != nil {

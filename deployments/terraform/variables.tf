@@ -15,13 +15,13 @@ variable "global_secondary_index_name" {
 
 variable "github_token" {
   type        = string
-  description = "Token for releasing on Github.com."
+  description = "Token for Github.com."
   default     = ""
 }
 
 variable "gitlab_token" {
   type        = string
-  description = "Token for releasing on Gitlab.com."
+  description = "Token for Gitlab.com."
   default     = ""
 }
 

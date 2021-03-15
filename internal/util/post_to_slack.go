@@ -24,7 +24,7 @@ func PostToSlack(webhookURL, message string) error {
 	}
 
 	req.Header.Add("Content-Type", "application/json")
-	clientSlack := &http.Client{Timeout: 10 * time.Second}
+	clientSlack := &http.Client{Timeout: 4 * time.Second}
 	log.Printf("[INFO] sending slack notification...")
 	resp, err := clientSlack.Do(req)
 	if err != nil {

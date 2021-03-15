@@ -3,31 +3,34 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
-type listUsersResponse struct {
-	Users []user
-}
-
 type user struct {
-	Email string `json:"name"`
-	ID    string `json:"id"`
+	Email   string `dynamodbav:"SK" json:"name"`
+	Enabled bool   `dynamodbav:"Enabled" json:"enabled"`
+	ID      string `dynamodbav:"ID" json:"id"`
 }
 
-func (app application) listUsers() (cidp.ListUsersOutput, error) {
-	input := &cidp.ListUsersInput{
-		AttributesToGet: aws.StringSlice([]string{"email"}),
-		Limit:           aws.Int64(60),
-		UserPoolId:      aws.String(app.config.UserPoolID),
+func (app application) listUsers(tenantID string) (dynamodb.QueryOutput, error) {
+	input := &dynamodb.QueryInput{
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":primary_key": {
+				S: aws.String(fmt.Sprintf("org#%s#user", tenantID)),
+			}},
+		KeyConditionExpression: aws.String("PK = :primary_key"),
+		Select:                 aws.String("ALL_ATTRIBUTES"),
+		TableName:              aws.String(app.config.TableName),
 	}
 
-	resp, err := app.config.idp.ListUsers(input)
+	resp, err := app.config.db.Query(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			log.Printf("[ERROR] %v", aerr.Error())
@@ -36,39 +39,26 @@ func (app application) listUsers() (cidp.ListUsersOutput, error) {
 		}
 		return *resp, err
 	}
-
-	// NOTE(SMT): Need to implement pagination
 	return *resp, err
 }
 
-func generateListUsersResponse(users []*cidp.UserType) listUsersResponse {
-	userNames := &listUsersResponse{}
-	for _, u := range users {
-		userName := user{
-			Email: *u.Attributes[0].Value,
-			ID:    *u.Username,
-		}
-		userNames.appendUserToResponse(userName)
-	}
-	return *userNames
-}
-
-func (userNames *listUsersResponse) appendUserToResponse(u user) {
-	userNames.Users = append(userNames.Users, u)
-}
-
-func (app application) usersListHandler(event events.APIGatewayV2HTTPRequest) (string, int) {
-
-	listUsersResp, err := app.listUsers()
-	if err != nil || len(listUsersResp.Users) == 0 {
+func (app application) usersListHandler(event events.APIGatewayV2HTTPRequest, tenantID string) (string, int) {
+	output, err := app.listUsers(tenantID)
+	if err != nil {
 		message := "Unable to query list of users"
 		statusCode := 400
 		return message, statusCode
 	}
 
-	userNames := generateListUsersResponse(listUsersResp.Users)
+	users := []*user{}
+	err = dynamodbattribute.UnmarshalListOfMaps(output.Items, &users)
+	if err != nil {
+		message := "Failed to read repositories response"
+		statusCode := 400
+		return message, statusCode
+	}
 
-	body, err := json.Marshal(userNames.Users)
+	body, err := json.Marshal(users)
 	statusCode := 200
 	if err != nil {
 		log.Printf("[ERROR] Unable to marshal json for response, %v", err)

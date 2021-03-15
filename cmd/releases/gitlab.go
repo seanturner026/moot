@@ -94,8 +94,18 @@ func (app gitlabController) createRelease(e releaseEvent) error {
 	return nil
 }
 
-func (app application) releasesGitlabHandler(e releaseEvent) (string, int) {
-	var err error
+func (app application) releasesGitlabHandler(e releaseEvent, token string) (string, int) {
+	clientGitlab, err := gitlab.NewClient(token)
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
+	}
+	app.gl = gitlabController{
+		ProjectID:          e.GitlabProjectID,
+		MergeRequestSquash: false,
+		RemoveSourceBranch: true,
+		Client:             clientGitlab,
+	}
+
 	if !e.Hotfix {
 		createMergeRequestResp, err := app.gl.createMergeRequest(e)
 		if err != nil {

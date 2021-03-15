@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"strings"
 
@@ -13,11 +14,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
-func (app awsController) listRepos() (dynamodb.QueryOutput, error) {
+func (app awsController) listRepos(tenantID string) (dynamodb.QueryOutput, error) {
+	log.Printf("TenantID %+v", tenantID)
 	input := &dynamodb.QueryInput{
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":primary_key": {
-				S: aws.String("repo"),
+				S: aws.String(fmt.Sprintf("org#%s#repo", tenantID)),
 			}},
 		KeyConditionExpression: aws.String("PK = :primary_key"),
 		Select:                 aws.String("ALL_ATTRIBUTES"),
@@ -33,7 +35,6 @@ func (app awsController) listRepos() (dynamodb.QueryOutput, error) {
 		}
 		return *resp, err
 	}
-
 	return *resp, err
 }
 
@@ -43,8 +44,8 @@ func (r *repository) removeDynamoRepoPartion() {
 	r.RepoName = repoDetails[1]
 }
 
-func (app application) repositoriesListHandler(event events.APIGatewayV2HTTPRequest) (string, int) {
-	output, err := app.aws.listRepos()
+func (app application) repositoriesListHandler(event events.APIGatewayV2HTTPRequest, tenantID string) (string, int) {
+	output, err := app.aws.listRepos(tenantID)
 	if err != nil {
 		message := "Failed to query repositories"
 		statusCode := 400

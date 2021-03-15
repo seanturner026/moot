@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/google/go-github/github"
+	"golang.org/x/oauth2"
 )
 
 type githubController struct {
@@ -82,7 +83,16 @@ func (app githubController) CreateRelease(e releaseEvent) error {
 	return nil
 }
 
-func (app application) releasesGithubHandler(e releaseEvent) (string, int) {
+func (app application) releasesGithubHandler(e releaseEvent, token string) (string, int) {
+	githubCtx := context.Background()
+	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
+	tc := oauth2.NewClient(githubCtx, ts)
+
+	app.gh = githubController{
+		Client:    github.NewClient(tc),
+		GithubCtx: githubCtx,
+	}
+
 	var err error
 	if !e.Hotfix {
 		prResp, err := app.gh.CreatePullRequest(e)

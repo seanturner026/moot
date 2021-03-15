@@ -11,10 +11,11 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
+	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
 	"github.com/google/go-github/github"
-	"github.com/seanturner026/serverless-release-dashboard/internal/util"
+	util "github.com/seanturner026/serverless-release-dashboard/internal/util"
 	"github.com/xanzy/go-gitlab"
-	"golang.org/x/oauth2"
 )
 
 type application struct {
@@ -24,9 +25,9 @@ type application struct {
 }
 
 type awsController struct {
-	GlobalSecondaryIndexName string
-	TableName                string
-	db                       dynamodbiface.DynamoDBAPI
+	TableName string
+	db        dynamodbiface.DynamoDBAPI
+	ssm       ssmiface.SSMAPI
 }
 
 type githubController struct {
@@ -51,27 +52,28 @@ type repository struct {
 }
 
 func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
-	var resp events.APIGatewayV2HTTPResponse
 	headers := map[string]string{"Content-Type": "application/json"}
+	IDToken := event.Headers["x-identity-token"]
+	tenantID := util.ExtractTenantID(IDToken)
 
 	if event.RawPath == "/repositories/create" {
-		log.Printf("[INFO] handling request on %v", event.RawPath)
-		message, statusCode := app.repositoriesCreateHandler(event)
+		log.Printf("[INFO] handling request on %s", event.RawPath)
+		message, statusCode := app.repositoriesCreateHandler(event, tenantID)
 		return util.GenerateResponseBody(message, statusCode, nil, headers, []string{}), nil
 
 	} else if event.RawPath == "/repositories/delete" {
-		log.Printf("[INFO] handling request on %v", event.RawPath)
-		message, statusCode := app.repositoriesDeleteHandler(event)
+		log.Printf("[INFO] handling request on %s", event.RawPath)
+		message, statusCode := app.repositoriesDeleteHandler(event, tenantID)
 		return util.GenerateResponseBody(message, statusCode, nil, headers, []string{}), nil
 
 	} else if event.RawPath == "/repositories/list" {
-		log.Printf("[INFO] handling request on %v", event.RawPath)
-		message, statusCode := app.repositoriesListHandler(event)
+		log.Printf("[INFO] handling request on %s", event.RawPath)
+		message, statusCode := app.repositoriesListHandler(event, tenantID)
 		return util.GenerateResponseBody(message, statusCode, nil, headers, []string{}), nil
 
 	} else {
 		log.Printf("[ERROR] path %v does not exist", event.RawPath)
-		resp = util.GenerateResponseBody(fmt.Sprintf("Path does not exist %v", event.RawPath), 404, nil, headers, []string{})
+		resp := util.GenerateResponseBody(fmt.Sprintf("Path does not exist %s", event.RawPath), 404, nil, headers, []string{})
 		return resp, nil
 	}
 }
@@ -79,33 +81,10 @@ func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.API
 func main() {
 	app := application{
 		aws: awsController{
-			GlobalSecondaryIndexName: os.Getenv("GLOBAL_SECONDARY_INDEX_NAME"),
-			TableName:                os.Getenv("TABLE_NAME"),
-			db:                       dynamodb.New(session.Must(session.NewSession())),
+			TableName: os.Getenv("TABLE_NAME"),
+			db:        dynamodb.New(session.Must(session.NewSession())),
+			ssm:       ssm.New(session.Must(session.NewSession())),
 		},
-	}
-
-	if os.Getenv("GITHUB_TOKEN") != "" {
-		githubCtx := context.Background()
-		ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")})
-		tc := oauth2.NewClient(githubCtx, ts)
-
-		app.gh = githubController{
-			Client:    github.NewClient(tc),
-			GithubCtx: githubCtx,
-		}
-	}
-
-	if os.Getenv("GITLAB_TOKEN") != "" {
-		clientGitlab, err := gitlab.NewClient(os.Getenv("GITLAB_TOKEN"))
-		if err != nil {
-			log.Fatalf("Failed to create client: %v", err)
-		}
-		app.gl = gitlabController{
-			MergeRequestSquash: false,
-			RemoveSourceBranch: true,
-			Client:             clientGitlab,
-		}
 	}
 
 	lambda.Start(app.handler)

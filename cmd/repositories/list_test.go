@@ -28,8 +28,9 @@ func TestListRepos(t *testing.T) {
 			TableName: "test",
 			db:        dbMock,
 		}}
+		tenantID := "1234567890"
 
-		_, err := app.aws.listRepos()
+		_, err := app.aws.listRepos(tenantID)
 		if err != nil {
 			t.Fatal("Query should have returned results")
 		}
