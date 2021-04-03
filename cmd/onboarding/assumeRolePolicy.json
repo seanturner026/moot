@@ -1,0 +1,17 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": [
+          "$LAMBDA_AUTH_ROLE_ARN",
+          "$LAMBDA_RELEASES_ROLE_ARN",
+          "$LAMBDA_REPOSITORIES_ROLE_ARN",
+          "$LAMBDA_USERS_ROLE_ARN"
+        ]
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}

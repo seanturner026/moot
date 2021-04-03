@@ -1,0 +1,35 @@
+{
+  "Comment": "Applying the Saga pattern with AWS Lambda and Step Functions",
+  "StartAt": "CreateOrganization",
+  "States": {
+    "CreateOrganization": {
+      "Type": "Task",
+      "Resource": "{onboarding_lambda_arn}",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.CreateOrganizationError",
+          "Next": "DeleteOrganization"
+        }
+      ],
+      "ResultPath": "$.CreateOrganizationResult",
+      "Next": "CreateUser"
+    },
+    "CreateUser": {
+      "Type": "Task",
+      "Resource": "{onboarding_lambda_arn}",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.CreateUserError",
+          "Next": "DeleteUser"
+        }
+      ],
+      "ResultPath": "$.CreateUserResult",
+      "Next": "CreateRole"
+    },
+    "Fail": {
+      "Type": "Fail"
+    }
+  }
+}

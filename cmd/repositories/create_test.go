@@ -35,7 +35,7 @@ func TestGeneratePutItemInupt(t *testing.T) {
 			BranchBase: "test",
 		}
 
-		_, _, err := generatePutItemInput(event)
+		_, err := generatePutItemInputExpression(event)
 		if err != nil {
 			t.Fatal("Input should have been marshalled for DynamoDB")
 		}
@@ -61,7 +61,7 @@ func TestWriteRepoToDB(t *testing.T) {
 			BranchBase: "test",
 		}
 
-		_, input, _ := generatePutItemInput(event)
+		input, _ := generatePutItemInputExpression(event)
 
 		err := app.aws.writeRepoToDB(event, input)
 		if err != nil {

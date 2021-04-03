@@ -51,7 +51,7 @@ type configuration struct {
 
 func (app awsController) getProviderToken(e releaseEvent, tenantID string) (string, error) {
 	input := &ssm.GetParameterInput{
-		Name:           aws.String(fmt.Sprintf("/deploy_tower/%s/%s/token", tenantID, e.RepoProvider)),
+		Name:           aws.String(fmt.Sprintf("/deploy-tower/%s/%s/token", tenantID, e.RepoProvider)),
 		WithDecryption: aws.Bool(true),
 	}
 

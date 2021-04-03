@@ -29,7 +29,7 @@ type createRepoEvent struct {
 
 func (app awsController) getProviderToken(e createRepoEvent, tenantID string) (string, error) {
 	input := &ssm.GetParameterInput{
-		Name:           aws.String(fmt.Sprintf("/deploy_tower/%s/%s/token", tenantID, e.RepoProvider)),
+		Name:           aws.String(fmt.Sprintf("/deploy-tower/%s/%s/token", tenantID, e.RepoProvider)),
 		WithDecryption: aws.Bool(true),
 	}
 
@@ -63,14 +63,14 @@ func (app gitlabController) confirmTokenAccess(e createRepoEvent) error {
 	return nil
 }
 
-func generatePutItemInput(e createRepoEvent) (createRepoEvent, map[string]*dynamodb.AttributeValue, error) {
+func generatePutItemInputExpression(e createRepoEvent) (map[string]*dynamodb.AttributeValue, error) {
 	e.TenantID = fmt.Sprintf("org#%v#repo", e.TenantID)
 	e.RepoProvider = fmt.Sprintf("%s#%s", e.RepoProvider, e.RepoName)
 	itemInput, err := dynamodbattribute.MarshalMap(e)
 	if err != nil {
-		return e, map[string]*dynamodb.AttributeValue{}, err
+		return map[string]*dynamodb.AttributeValue{}, err
 	}
-	return e, itemInput, nil
+	return itemInput, nil
 }
 
 func (app awsController) writeRepoToDB(e createRepoEvent, itemInput map[string]*dynamodb.AttributeValue) error {
@@ -106,7 +106,7 @@ func (app application) repositoriesCreateHandler(event events.APIGatewayV2HTTPRe
 		return message, statusCode
 	}
 
-	if e.RepoProvider == "github.com" {
+	if e.RepoProvider == "github" {
 		githubCtx := context.Background()
 		ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
 		tc := oauth2.NewClient(githubCtx, ts)
@@ -121,7 +121,7 @@ func (app application) repositoriesCreateHandler(event events.APIGatewayV2HTTPRe
 			statusCode := 401
 			return message, statusCode
 		}
-	} else if e.RepoProvider == "gitlab.com" {
+	} else if e.RepoProvider == "gitlab" {
 		clientGitlab, err := gitlab.NewClient(token)
 		if err != nil {
 			log.Fatalf("Failed to create client: %v", err)
@@ -137,7 +137,7 @@ func (app application) repositoriesCreateHandler(event events.APIGatewayV2HTTPRe
 		}
 	}
 
-	e, itemInput, err := generatePutItemInput(e)
+	itemInput, err := generatePutItemInputExpression(e)
 	if err != nil {
 		message := fmt.Sprintf("Failed to stage provided information for loading into DynamoDB for ID %s", e.RepoName)
 		statusCode := 400

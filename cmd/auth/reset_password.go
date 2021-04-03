@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
+	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/seanturner026/serverless-release-dashboard/internal/util"
 )
 
@@ -19,7 +19,7 @@ type resetPasswordEvent struct {
 }
 
 func (app application) resetPassword(e resetPasswordEvent, secretHash string) (string, error) {
-	input := &cidp.AdminRespondToAuthChallengeInput{
+	input := &cognitoidentityprovider.AdminRespondToAuthChallengeInput{
 		ChallengeName: aws.String("NEW_PASSWORD_REQUIRED"),
 		ChallengeResponses: map[string]*string{
 			"USERNAME":     aws.String(e.EmailAddress),

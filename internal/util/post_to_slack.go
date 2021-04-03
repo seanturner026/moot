@@ -17,6 +17,7 @@ type slackRequestBody struct {
 // PostToSlack reads a webhookURL from the provided environment variable, and sends the message
 // argument to the channel associated with the webhookURL.
 func PostToSlack(webhookURL, message string) error {
+	log.Printf("[INFO] sending slack notification...")
 	slackBody, _ := json.Marshal(slackRequestBody{Text: message})
 	req, err := http.NewRequest(http.MethodPost, webhookURL, bytes.NewBuffer(slackBody))
 	if err != nil {
@@ -25,7 +26,6 @@ func PostToSlack(webhookURL, message string) error {
 
 	req.Header.Add("Content-Type", "application/json")
 	clientSlack := &http.Client{Timeout: 4 * time.Second}
-	log.Printf("[INFO] sending slack notification...")
 	resp, err := clientSlack.Do(req)
 	if err != nil {
 		log.Printf("[ERROR] unable to send POST request, %v", err)

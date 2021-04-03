@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
+	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
@@ -17,12 +17,12 @@ type createUserEvent struct {
 }
 
 func (app application) createUser(e createUserEvent, tenantID string) (string, error) {
-	input := &cidp.AdminCreateUserInput{
+	input := &cognitoidentityprovider.AdminCreateUserInput{
 		UserPoolId:             aws.String(app.config.UserPoolID),
 		Username:               aws.String(e.EmailAddress),
 		DesiredDeliveryMediums: aws.StringSlice([]string{"EMAIL"}),
 		ForceAliasCreation:     aws.Bool(true),
-		UserAttributes: []*cidp.AttributeType{
+		UserAttributes: []*cognitoidentityprovider.AttributeType{
 			{
 				Name:  aws.String("email"),
 				Value: aws.String(e.EmailAddress),

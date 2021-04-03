@@ -1,0 +1,36 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:BatchWriteItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:Query",
+        "dynamodb:UpdateItem"
+      ],
+      "Resource": ["$TABLE_ARN"],
+      "Condition": {
+        "ForAllValues:StringEquals": {
+          "dynamodb:LeadingKeys": ["org#$TENANT_ID#*"]
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["ssm:GetParameter", "ssm:PutParameter"],
+      "Resource": [
+        "arn:aws:ssm:$REGION:$ACCOUNT_ID:parameter/deploy-tower/$TENANT_ID/github/token",
+        "arn:aws:ssm:$REGION:$ACCOUNT_ID:parameter/deploy-tower/$TENANT_ID/gitlab/token",
+        "arn:aws:ssm:$REGION:$ACCOUNT_ID:parameter/deploy-tower/$TENANT_ID/slack/token"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["cognito-idp:AdminCreateUser", "cognito-idp:AdminDeleteUser"],
+      "Resource": ["$USER_POOL_ARN"]
+    }
+  ]
+}

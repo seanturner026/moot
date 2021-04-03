@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
+	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
@@ -18,7 +18,7 @@ type deleteUserEvent struct {
 }
 
 func (app application) deleteUserFromCognito(e deleteUserEvent) error {
-	input := &cidp.AdminDeleteUserInput{
+	input := &cognitoidentityprovider.AdminDeleteUserInput{
 		UserPoolId: aws.String(os.Getenv("USER_POOL_ID")),
 		Username:   aws.String(e.EmailAddress),
 	}

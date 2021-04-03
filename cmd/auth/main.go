@@ -8,8 +8,8 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws/session"
-	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
-	cidpif "github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
+	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
+	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/seanturner026/serverless-release-dashboard/internal/util"
@@ -25,7 +25,7 @@ type configuration struct {
 	UserPoolID       string
 	ClientPoolSecret string
 	db               dynamodbiface.DynamoDBAPI
-	idp              cidpif.CognitoIdentityProviderAPI
+	idp              cognitoidentityprovideriface.CognitoIdentityProviderAPI
 }
 
 func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
@@ -54,7 +54,7 @@ func main() {
 		UserPoolID:       os.Getenv("USER_POOL_ID"),
 		ClientPoolSecret: os.Getenv("CLIENT_POOL_SECRET"),
 		db:               dynamodb.New(session.Must(session.NewSession())),
-		idp:              cidp.New(session.Must(session.NewSession())),
+		idp:              cognitoidentityprovider.New(session.Must(session.NewSession())),
 	}
 
 	app := application{config: config}

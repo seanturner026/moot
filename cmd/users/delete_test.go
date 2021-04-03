@@ -3,24 +3,24 @@ package main
 import (
 	"testing"
 
-	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
-	cidpif "github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
+	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
+	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
 )
 
 type mockAdminDeleteUser struct {
-	cidpif.CognitoIdentityProviderAPI
-	Response *cidp.AdminDeleteUserOutput
+	cognitoidentityprovideriface.CognitoIdentityProviderAPI
+	Response *cognitoidentityprovider.AdminDeleteUserOutput
 	Error    error
 }
 
-func (m mockAdminDeleteUser) AdminDeleteUser(*cidp.AdminDeleteUserInput) (*cidp.AdminDeleteUserOutput, error) {
+func (m mockAdminDeleteUser) AdminDeleteUser(*cognitoidentityprovider.AdminDeleteUserInput) (*cognitoidentityprovider.AdminDeleteUserOutput, error) {
 	return m.Response, nil
 }
 
 func TestDeleteUserFromCognito(t *testing.T) {
 	t.Run("Successfully delete user", func(t *testing.T) {
 		idpMock := mockAdminDeleteUser{
-			Response: &cidp.AdminDeleteUserOutput{},
+			Response: &cognitoidentityprovider.AdminDeleteUserOutput{},
 			Error:    nil,
 		}
 

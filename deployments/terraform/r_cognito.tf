@@ -15,6 +15,19 @@ resource "aws_cognito_user_pool" "this" {
   schema {
     name                     = "tenant_id"
     attribute_data_type      = "String"
+    mutable                  = false
+    required                 = false
+    developer_only_attribute = false
+
+    string_attribute_constraints {
+      max_length = "256"
+      min_length = "1"
+    }
+  }
+
+  schema {
+    name                     = "tenant_name"
+    attribute_data_type      = "String"
     mutable                  = true
     required                 = false
     developer_only_attribute = false
@@ -27,6 +40,13 @@ resource "aws_cognito_user_pool" "this" {
 
   tags = var.tags
 }
+
+# resource "aws_cognito_user_group" "this" {
+#   name         = "${var.tags.name}_${replace("b673438f-6459-4f62-a200-f66f261cc403", "-", "_")}"
+#   user_pool_id = aws_cognito_user_pool.this.id
+#   # precedence   = 42
+#   role_arn = aws_iam_role.group_role.arn
+# }
 
 resource "aws_cognito_user_pool_client" "this" {
   name                                 = var.tags.name
@@ -44,8 +64,8 @@ resource "aws_cognito_user_pool_client" "this" {
   ]
   supported_identity_providers = ["COGNITO"]
   callback_urls                = ["https://localhost:3000"]
-  read_attributes              = ["custom:tenant_id"]
-  write_attributes             = ["custom:tenant_id"]
+  read_attributes              = ["custom:tenant_id", "custom:tenant_name"]
+  write_attributes             = ["custom:tenant_id", "custom:tenant_name"]
 }
 
 resource "aws_cognito_identity_pool" "this" {

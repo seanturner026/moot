@@ -1,0 +1,20 @@
+[
+  {
+    "resource": "/",
+    "path": "/admin/onboarding",
+    "httpMethod": "POST",
+    "requestContext": {
+      "resourcePath": "/",
+      "httpMethod": "POST",
+      "path": "/admin/onboarding"
+    },
+    "headers": {},
+    "multiValueHeaders": {},
+    "queryStringParameters": null,
+    "multiValueQueryStringParameters": null,
+    "pathParameters": null,
+    "stageVariables": null,
+    "body": "{ \"organization_name\": \"foo\",\"contact_email\": \"me@example.com\"}",
+    "isBase64Encoded": false
+  }
+]

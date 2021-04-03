@@ -7,12 +7,12 @@ locals {
       parameter_value = aws_cognito_user_pool_client.this.client_secret
     }
     github_token = {
-      path            = "/deploy_tower/12345/github.com/token"
+      path            = "/deploy-tower/12345/github/token"
       description     = "Token for Github.com access."
       parameter_value = var.github_token
     }
     gitlab_token = {
-      path            = "/deploy_tower/12345/gitlab.com/token"
+      path            = "/deploy-tower/12345/gitlab/token"
       description     = "Token for Gitlab.com access."
       parameter_value = var.gitlab_token
     }
@@ -23,6 +23,48 @@ locals {
   }
 
   lambdas = {
+    onboarding = {
+      description = "Administrates the application."
+      authorizer  = true
+      environment = {
+        ACCOUNT_ID                   = data.aws_caller_identity.current.account_id
+        REGION                       = data.aws_region.current.name
+        LAMBDA_AUTH_ROLE_ARN         = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/dev_release_dashboard_auth"
+        LAMBDA_RELEASES_ROLE_ARN     = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/dev_release_dashboard_releases"
+        LAMBDA_REPOSITORIES_ROLE_ARN = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/dev_release_dashboard_repositories"
+        LAMBDA_USERS_ROLE_ARN        = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/dev_release_dashboard_users"
+        SLACK_WEBHOOK_URL            = aws_ssm_parameter.this["slack_webhook_url"].value
+        TABLE_ARN                    = aws_dynamodb_table.this.arn
+        TABLE_NAME                   = aws_dynamodb_table.this.id
+        USER_POOL_ARN                = aws_cognito_user_pool.this.arn
+        USER_POOL_ID                 = aws_cognito_user_pool.this.id
+      }
+      routes = {
+        "/onboarding/create" = "POST"
+      }
+      iam_statements = {
+        all = {
+          actions   = ["ssm:AddTagsToResource"]
+          resources = ["*"]
+        }
+        cognito = {
+          actions   = ["cognito-idp:AdminAddUserToGroup", "cognito-idp:CreateGroup", "cognito-idp:AdminCreateUser"]
+          resources = [aws_cognito_user_pool.this.arn]
+        }
+        dynamodb = {
+          actions   = ["dynamodb:UpdateItem", "dynamodb:PutItem"]
+          resources = [aws_dynamodb_table.this.arn]
+        }
+        iam = {
+          actions   = ["iam:CreateRole", "iam:PassRole", "iam:PutRolePolicy", "iam:TagRole"]
+          resources = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/LambdaExecutionRole-*"]
+        }
+        ssm = {
+          actions   = ["ssm:PutParameter"]
+          resources = ["arn:aws:ssm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:parameter/deploy-tower/*/*/token"]
+        }
+      }
+    }
     auth = {
       description = "Administrates user login, token refreshes, and password resets."
       authorizer  = false
@@ -79,8 +121,7 @@ locals {
       description = "Writes github repository details to DynamoDB."
       authorizer  = true
       environment = {
-        GLOBAL_SECONDARY_INDEX_NAME = var.global_secondary_index_name
-        TABLE_NAME                  = aws_dynamodb_table.this.id
+        TABLE_NAME = aws_dynamodb_table.this.id
       }
       routes = {
         "/repositories/create" = "POST"
@@ -95,10 +136,7 @@ locals {
             "dynamodb:Query",
             "dynamodb:UpdateItem",
           ]
-          resources = [
-            aws_dynamodb_table.this.arn,
-            "${aws_dynamodb_table.this.arn}/index/${var.global_secondary_index_name}",
-          ]
+          resources = [aws_dynamodb_table.this.arn]
         }
         ssm = {
           actions   = ["ssm:GetParameter"]
@@ -111,7 +149,7 @@ locals {
       description = "Creates, Lists, and Deletes Cognito Users."
       authorizer  = true
       environment = {
-        REGION       = data.aws_region.this.name
+        REGION       = data.aws_region.current.name
         TABLE_NAME   = aws_dynamodb_table.this.id
         USER_POOL_ID = aws_cognito_user_pool.this.id
       }

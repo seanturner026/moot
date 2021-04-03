@@ -4,17 +4,17 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
-	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
-	cidpif "github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
+	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
+	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
 )
 
 type mockAdminRespondToAuthChallenge struct {
-	cidpif.CognitoIdentityProviderAPI
-	Response *cidp.AdminRespondToAuthChallengeOutput
+	cognitoidentityprovideriface.CognitoIdentityProviderAPI
+	Response *cognitoidentityprovider.AdminRespondToAuthChallengeOutput
 	Error    error
 }
 
-func (m mockAdminRespondToAuthChallenge) AdminRespondToAuthChallenge(*cidp.AdminRespondToAuthChallengeInput) (*cidp.AdminRespondToAuthChallengeOutput, error) {
+func (m mockAdminRespondToAuthChallenge) AdminRespondToAuthChallenge(*cognitoidentityprovider.AdminRespondToAuthChallengeInput) (*cognitoidentityprovider.AdminRespondToAuthChallengeOutput, error) {
 	return m.Response, nil
 }
 
@@ -22,8 +22,8 @@ func TestResetPassword(t *testing.T) {
 	t.Run("Successfully reset user password", func(t *testing.T) {
 
 		idpMock := mockAdminRespondToAuthChallenge{
-			Response: &cidp.AdminRespondToAuthChallengeOutput{
-				AuthenticationResult: &cidp.AuthenticationResultType{
+			Response: &cognitoidentityprovider.AdminRespondToAuthChallengeOutput{
+				AuthenticationResult: &cognitoidentityprovider.AuthenticationResultType{
 					AccessToken: aws.String("example"),
 				},
 			},

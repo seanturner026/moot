@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
+	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/seanturner026/serverless-release-dashboard/internal/util"
@@ -23,21 +23,20 @@ type userAuthEvent struct {
 }
 
 type tenantLookupResponse struct {
-	ID string `dynamodbav:"OrganizationID" json:"id"`
+	ID string `dynamodbav:"ID" json:"id"`
 }
 
 type userAuthResponse struct {
-	AccessToken         string    `json:"access_token,omitempty"`
-	IDToken             string    `json:"id_token,omitempty"`
-	RefreshToken        string    `json:"refresh_token,omitempty"`
-	ExpiresAt           time.Time `json:"expires_at,omitempty"`
-	NewPasswordRequired bool
-	SessionID           string `json:"session_id,omitempty"`
-	UserID              string `json:"user_id,omitempty"`
+	AccessToken  string    `json:"access_token,omitempty"`
+	IDToken      string    `json:"id_token,omitempty"`
+	RefreshToken string    `json:"refresh_token,omitempty"`
+	ExpiresAt    time.Time `json:"expires_at,omitempty"`
+	SessionID    string    `json:"session_id,omitempty"`
+	UserID       string    `json:"user_id,omitempty"`
 }
 
-func (app application) generateAuthInput(e userAuthEvent, path string, secretHash string) *cidp.InitiateAuthInput {
-	input := &cidp.InitiateAuthInput{}
+func (app application) generateAuthInput(e userAuthEvent, path string, secretHash string) *cognitoidentityprovider.InitiateAuthInput {
+	input := &cognitoidentityprovider.InitiateAuthInput{}
 	input.ClientId = aws.String(app.config.ClientPoolID)
 	if path == "/auth/login" {
 		input.AuthFlow = aws.String("USER_PASSWORD_AUTH")
@@ -57,8 +56,9 @@ func (app application) generateAuthInput(e userAuthEvent, path string, secretHas
 	return input
 }
 
-func (app application) loginUser(e userAuthEvent, input *cidp.InitiateAuthInput) (userAuthResponse, error) {
+func (app application) loginUser(e userAuthEvent, input *cognitoidentityprovider.InitiateAuthInput) (userAuthResponse, bool, error) {
 	loginUserResp := userAuthResponse{}
+	var newPasswordRequired bool
 	resp, err := app.config.idp.InitiateAuth(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
@@ -66,16 +66,16 @@ func (app application) loginUser(e userAuthEvent, input *cidp.InitiateAuthInput)
 		} else {
 			log.Printf("[ERROR] %v", err.Error())
 		}
-		loginUserResp.NewPasswordRequired = false
-		return loginUserResp, err
+		newPasswordRequired = false
+		return loginUserResp, newPasswordRequired, err
 	}
 
 	if aws.StringValue(resp.ChallengeName) == "NEW_PASSWORD_REQUIRED" {
 		log.Printf("[INFO] New password required for %v", e.EmailAddress)
-		loginUserResp.NewPasswordRequired = true
+		newPasswordRequired = true
 		loginUserResp.SessionID = *resp.Session
 		loginUserResp.UserID = *resp.ChallengeParameters["USER_ID_FOR_SRP"]
-		return loginUserResp, nil
+		return loginUserResp, newPasswordRequired, nil
 	}
 	log.Printf("[INFO] Authenticated user %v successfully", e.EmailAddress)
 
@@ -84,8 +84,8 @@ func (app application) loginUser(e userAuthEvent, input *cidp.InitiateAuthInput)
 	loginUserResp.AccessToken = *resp.AuthenticationResult.AccessToken
 	loginUserResp.IDToken = *resp.AuthenticationResult.IdToken
 	loginUserResp.RefreshToken = *resp.AuthenticationResult.RefreshToken
-	loginUserResp.NewPasswordRequired = false
-	return loginUserResp, nil
+	newPasswordRequired = false
+	return loginUserResp, newPasswordRequired, nil
 }
 
 func (app application) getTenantID(organizationName string) (string, error) {
@@ -99,7 +99,7 @@ func (app application) getTenantID(organizationName string) (string, error) {
 			},
 		},
 		ConsistentRead:         aws.Bool(false),
-		ProjectionExpression:   aws.String("OrganizationID"),
+		ProjectionExpression:   aws.String("ID"),
 		ReturnConsumedCapacity: aws.String("NONE"),
 		TableName:              aws.String(app.config.TableName),
 	}
@@ -130,12 +130,12 @@ func (app application) authLoginHandler(event events.APIGatewayV2HTTPRequest, he
 
 	secretHash := util.GenerateSecretHash(app.config.ClientPoolSecret, e.EmailAddress, app.config.ClientPoolID)
 	input := app.generateAuthInput(e, event.RawPath, secretHash)
-	loginUserResp, err := app.loginUser(e, input)
+	loginUserResp, newPasswordRequired, err := app.loginUser(e, input)
 	if err != nil {
 		message := fmt.Sprintf("Error authenticating user %v", e.EmailAddress)
 		statusCode := 400
 		return message, statusCode, headers
-	} else if loginUserResp.NewPasswordRequired {
+	} else if newPasswordRequired {
 		headers["X-Session-Id"] = loginUserResp.SessionID
 		message := fmt.Sprintf("User %v authorized successfully, password change required", e.EmailAddress)
 		statusCode := 200
