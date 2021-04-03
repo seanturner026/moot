@@ -26,7 +26,7 @@ func TestDeleteUserFromCognito(t *testing.T) {
 
 		app := application{config: configuration{
 			UserPoolID: "test",
-			idp:        idpMock,
+			IDP:        idpMock,
 		}}
 
 		err := app.deleteUserFromCognito(deleteUserEvent{EmailAddress: "user@example.com"})

@@ -33,7 +33,7 @@ func TestLoginUser(t *testing.T) {
 		app := application{config: configuration{
 			ClientPoolID: "test",
 			UserPoolID:   "test",
-			idp:          idpMock,
+			IDP:          idpMock,
 		}}
 
 		event := userAuthEvent{
@@ -66,7 +66,7 @@ func TestLoginUser(t *testing.T) {
 		app := application{config: configuration{
 			ClientPoolID: "test",
 			UserPoolID:   "test",
-			idp:          idpMock,
+			IDP:          idpMock,
 		}}
 
 		event := userAuthEvent{
@@ -99,7 +99,7 @@ func TestLoginUser(t *testing.T) {
 		app := application{config: configuration{
 			ClientPoolID: "test",
 			UserPoolID:   "test",
-			idp:          idpMock,
+			IDP:          idpMock,
 		}}
 
 		event := userAuthEvent{

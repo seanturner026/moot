@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -11,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	log "github.com/sirupsen/logrus"
 )
 
 type deleteUserEvent struct {
@@ -22,16 +22,16 @@ func (app application) deleteUserFromCognito(e deleteUserEvent) error {
 		UserPoolId: aws.String(os.Getenv("USER_POOL_ID")),
 		Username:   aws.String(e.EmailAddress),
 	}
-	_, err := app.config.idp.AdminDeleteUser(input)
+	_, err := app.config.IDP.AdminDeleteUser(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			log.Printf("[ERROR] %v", aerr.Error())
+			log.Error(fmt.Sprintf("%v", aerr.Error()))
 		} else {
-			log.Printf("[ERROR] %v", err.Error())
+			log.Error(fmt.Sprintf("%v", err.Error()))
 		}
 		return err
 	}
-	log.Printf("[INFO] Deleted user %v successfully", e.EmailAddress)
+	log.Info(fmt.Sprintf("deleted user %v successfully", e.EmailAddress))
 	return nil
 }
 
@@ -50,16 +50,16 @@ func (app application) deleteUserFromDynamoDB(e deleteUserEvent, tenantID string
 		ReturnValues:                aws.String("NONE"),
 		TableName:                   aws.String(app.config.TableName),
 	}
-	_, err := app.config.db.DeleteItem(input)
+	_, err := app.config.DB.DeleteItem(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			log.Printf("[ERROR] %v", aerr.Error())
+			log.Error(fmt.Sprintf("%v", aerr.Error()))
 		} else {
-			log.Printf("[ERROR] %v", err.Error())
+			log.Error(fmt.Sprintf("%v", err.Error()))
 		}
 		return err
 	}
-	log.Printf("[INFO] Deleted user %v successfully", e.EmailAddress)
+	log.Info(fmt.Sprintf("deleted user %v successfully", e.EmailAddress))
 	return nil
 }
 
@@ -67,7 +67,7 @@ func (app application) usersDeleteHandler(event events.APIGatewayV2HTTPRequest, 
 	e := deleteUserEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
 	if err != nil {
-		log.Printf("[ERROR] %v", err)
+		log.Error(fmt.Sprintf("%v", err))
 	}
 
 	err = app.deleteUserFromCognito(e)

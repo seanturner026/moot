@@ -3,13 +3,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	log "github.com/sirupsen/logrus"
 )
 
 type createUserEvent struct {
@@ -33,16 +33,16 @@ func (app application) createUser(e createUserEvent, tenantID string) (string, e
 			},
 		},
 	}
-	resp, err := app.config.idp.AdminCreateUser(input)
+	resp, err := app.config.IDP.AdminCreateUser(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			log.Printf("[ERROR] %v", aerr.Error())
+			log.Error(fmt.Sprintf("%v", aerr.Error()))
 		} else {
-			log.Printf("[ERROR] %v", err.Error())
+			log.Error(fmt.Sprintf("%v", err.Error()))
 		}
 		return "", err
 	}
-	log.Printf("[INFO] Created new user %v successfully", e.EmailAddress)
+	log.Info(fmt.Sprintf("created new user %v successfully", e.EmailAddress))
 	userID := *resp.User.Username
 	return userID, nil
 }
@@ -68,12 +68,12 @@ func (app application) writeUserToDynamoDB(e createUserEvent, tenantID, userID s
 		ReturnValues:                aws.String("NONE"),
 		TableName:                   aws.String(app.config.TableName),
 	}
-	_, err := app.config.db.PutItem(input)
+	_, err := app.config.DB.PutItem(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			log.Printf("[ERROR] %v", aerr.Error())
+			log.Error(fmt.Sprintf("%v", aerr.Error()))
 		} else {
-			log.Printf("[ERROR] %v", err.Error())
+			log.Error(fmt.Sprintf("%v", err.Error()))
 		}
 		return err
 	}
@@ -84,7 +84,7 @@ func (app application) usersCreateHandler(event events.APIGatewayV2HTTPRequest, 
 	e := createUserEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
 	if err != nil {
-		log.Printf("[ERROR] %v", err)
+		log.Error(fmt.Sprintf("%v", err))
 	}
 
 	userID, err := app.createUser(e, tenantID)

@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	log "github.com/sirupsen/logrus"
 )
 
 type user struct {
@@ -30,12 +30,12 @@ func (app application) listUsers(tenantID string) (dynamodb.QueryOutput, error) 
 		TableName:              aws.String(app.config.TableName),
 	}
 
-	resp, err := app.config.db.Query(input)
+	resp, err := app.config.DB.Query(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			log.Printf("[ERROR] %v", aerr.Error())
+			log.Error(fmt.Sprintf("%v", aerr.Error()))
 		} else {
-			log.Printf("[ERROR] %v", err.Error())
+			log.Error(fmt.Sprintf("%v", err.Error()))
 		}
 		return *resp, err
 	}
@@ -61,7 +61,7 @@ func (app application) usersListHandler(event events.APIGatewayV2HTTPRequest, te
 	body, err := json.Marshal(users)
 	statusCode := 200
 	if err != nil {
-		log.Printf("[ERROR] Unable to marshal json for response, %v", err)
+		log.Error(fmt.Sprintf("unable to marshal json for response, %v", err))
 		statusCode = 400
 	}
 

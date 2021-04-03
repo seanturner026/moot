@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"sync"
 	"time"
@@ -20,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/google/uuid"
 	"github.com/seanturner026/serverless-release-dashboard/internal/util"
+	log "github.com/sirupsen/logrus"
 )
 
 type onboardingEvent struct {
@@ -57,12 +57,12 @@ func (app application) writeOrgToDynamoDB(e onboardingEvent, itemInput map[strin
 		TableName:                   aws.String(app.Config.TableName),
 	}
 
-	_, err := app.Config.db.PutItem(input)
+	_, err := app.Config.DB.PutItem(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			app.Logger.Error(aerr.Error())
+			log.Error(aerr.Error())
 		} else {
-			app.Logger.Error(err.Error())
+			log.Error(err.Error())
 		}
 		return err
 	}
@@ -93,7 +93,7 @@ func (app application) createCognitoUser(e onboardingEvent, wg *sync.WaitGroup, 
 			},
 		},
 	}
-	resp, err := app.Config.idp.AdminCreateUser(input)
+	resp, err := app.Config.IDP.AdminCreateUser(input)
 	if err != nil {
 		res := onboardingChannel{Error: err, Type: "cognito"}
 		if awsErr, ok := err.(awserr.Error); ok {
@@ -148,7 +148,7 @@ func (app application) createIAMRoleAndCognitoGroup(
 		},
 	}
 
-	iamResp, err := app.Config.iam.CreateRole(iamInput)
+	iamResp, err := app.Config.IAM.CreateRole(iamInput)
 	if err != nil {
 		res := onboardingChannel{Error: err, Type: "iam"}
 		if awsErr, ok := err.(awserr.Error); ok {
@@ -167,7 +167,7 @@ func (app application) createIAMRoleAndCognitoGroup(
 		UserPoolId:  aws.String(app.Config.UserPoolID),
 	}
 
-	_, err = app.Config.idp.CreateGroup(cognitoInput)
+	_, err = app.Config.IDP.CreateGroup(cognitoInput)
 	if err != nil {
 		res := onboardingChannel{Error: err, Type: "cognito"}
 		if awsErr, ok := err.(awserr.Error); ok {
@@ -200,7 +200,7 @@ func (app application) createParameters(tenantID, provider string, wg *sync.Wait
 		Type:  aws.String("SecureString"),
 		Value: aws.String("42"),
 	}
-	_, err := app.Config.ssm.PutParameter(input)
+	_, err := app.Config.SSM.PutParameter(input)
 	if err != nil {
 		res := onboardingChannel{Error: err, Type: "ssm"}
 		if awsErr, ok := err.(awserr.Error); ok {
@@ -219,7 +219,7 @@ func (app application) addUserToCognitoGroup(groupName string, wg *sync.WaitGrou
 		UserPoolId: aws.String(app.Config.UserPoolID),
 		Username:   aws.String(cognitoUsername),
 	}
-	_, err := app.Config.idp.AdminAddUserToGroup(input)
+	_, err := app.Config.IDP.AdminAddUserToGroup(input)
 	if err != nil {
 		res := onboardingChannel{Error: err, Type: "cognito"}
 		if awsErr, ok := err.(awserr.Error); ok {
@@ -253,7 +253,7 @@ func (app application) writeUserToDynamoDB(e onboardingEvent, wg *sync.WaitGroup
 		ReturnValues:                aws.String("NONE"),
 		TableName:                   aws.String(app.Config.TableName),
 	}
-	_, err := app.Config.db.PutItem(input)
+	_, err := app.Config.DB.PutItem(input)
 	if err != nil {
 		res := onboardingChannel{Error: err, Type: "dynamodb"}
 		if awsErr, ok := err.(awserr.Error); ok {
@@ -285,7 +285,7 @@ func (app application) addPermissionsToRole(tenantID string, roleName string, wg
 		PolicyName:     aws.String("TenantExecutionPolicy"),
 		RoleName:       aws.String(roleName),
 	}
-	_, err := app.Config.iam.PutRolePolicy(input)
+	_, err := app.Config.IAM.PutRolePolicy(input)
 	if err != nil {
 		res := onboardingChannel{Error: err, Type: "iam"}
 		if awsErr, ok := err.(awserr.Error); ok {
@@ -319,12 +319,12 @@ func (app application) updateOrgStatusToOnboarded(e onboardingEvent) error {
 		UpdateExpression: aws.String("SET #s = :s"),
 	}
 
-	_, err := app.Config.db.UpdateItem(input)
+	_, err := app.Config.DB.UpdateItem(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			app.Logger.Error(aerr.Error())
+			log.Error(aerr.Error())
 		} else {
-			app.Logger.Error(err.Error())
+			log.Error(err.Error())
 		}
 		return err
 	}
@@ -335,7 +335,7 @@ func (app application) onboardingCreateHandler(event events.APIGatewayV2HTTPRequ
 	e := onboardingEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
 	if err != nil {
-		log.Printf("[ERROR] %v", err)
+		log.Error(fmt.Sprintf("%v", err))
 	}
 
 	e.PK = "organization"
@@ -382,7 +382,7 @@ func (app application) onboardingCreateHandler(event events.APIGatewayV2HTTPRequ
 		slackMessage += "```"
 		slackErr := util.PostToSlack(app.Config.SlackWebhookURL, slackMessage)
 		if slackErr != nil {
-			app.Logger.Error(fmt.Sprintf("Unable to send onboarding failure notification for %s ID %s", e.TenantName, e.TenantID))
+			log.Error(fmt.Sprintf("unable to send onboarding failure notification for %s ID %s", e.TenantName, e.TenantID))
 		}
 		message := "Something's gone wrong and there's been an issue onboarding your oganization. We will be in touch."
 		statusCode := 400
@@ -406,7 +406,7 @@ func (app application) onboardingCreateHandler(event events.APIGatewayV2HTTPRequ
 		slackMessage += "```"
 		slackErr := util.PostToSlack(app.Config.SlackWebhookURL, slackMessage)
 		if slackErr != nil {
-			app.Logger.Error(fmt.Sprintf("Unable to send onboarding failure notification for %s ID %s", e.TenantName, e.TenantID))
+			log.Error(fmt.Sprintf("unable to send onboarding failure notification for %s ID %s", e.TenantName, e.TenantID))
 		}
 		message := "Something's gone wrong and there's been an issue onboarding your oganization. We will be in touch."
 		statusCode := 400
@@ -419,7 +419,7 @@ func (app application) onboardingCreateHandler(event events.APIGatewayV2HTTPRequ
 		slackMessage := fmt.Sprintf("*Onboarding Error*\n```TenantName: %s\nTenantID:   %s\n\nUnable to update org status```", e.TenantName, e.TenantID)
 		slackErr := util.PostToSlack(app.Config.SlackWebhookURL, slackMessage)
 		if slackErr != nil {
-			app.Logger.Error(fmt.Sprintf("Unable to send onboarding failure notification for %s ID %s", e.TenantName, e.TenantID))
+			log.Error(fmt.Sprintf("unable to send onboarding failure notification for %s ID %s", e.TenantName, e.TenantID))
 		}
 		message := fmt.Sprintf("Successfully onboarded organization %s", e.TenantName)
 		statusCode := 400

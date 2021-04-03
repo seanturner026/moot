@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -13,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/seanturner026/serverless-release-dashboard/internal/util"
+	log "github.com/sirupsen/logrus"
 )
 
 type application struct {
@@ -22,8 +22,8 @@ type application struct {
 type configuration struct {
 	TableName  string
 	UserPoolID string
-	db         dynamodbiface.DynamoDBAPI
-	idp        cognitoidentityprovideriface.CognitoIdentityProviderAPI
+	DB         dynamodbiface.DynamoDBAPI
+	IDP        cognitoidentityprovideriface.CognitoIdentityProviderAPI
 }
 
 func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
@@ -33,33 +33,35 @@ func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.API
 	tenantID := util.ExtractTenantID(IDToken)
 
 	if event.RawPath == "/users/create" {
-		log.Printf("[INFO] handling request on %v", event.RawPath)
+		log.Info(fmt.Sprintf("handling request on %v", event.RawPath))
 		message, statusCode := app.usersCreateHandler(event, tenantID)
 		return util.GenerateResponseBody(message, statusCode, nil, headers, []string{}), nil
 
 	} else if event.RawPath == "/users/delete" {
-		log.Printf("[INFO] handling request on %v", event.RawPath)
+		log.Info(fmt.Sprintf("handling request on %v", event.RawPath))
 		message, statusCode := app.usersDeleteHandler(event, tenantID)
 		return util.GenerateResponseBody(message, statusCode, nil, headers, []string{}), nil
 
 	} else if event.RawPath == "/users/list" {
-		log.Printf("[INFO] handling request on %v", event.RawPath)
+		log.Info(fmt.Sprintf("handling request on %v", event.RawPath))
 		message, statusCode := app.usersListHandler(event, tenantID)
 		return util.GenerateResponseBody(message, statusCode, nil, headers, []string{}), nil
 
 	} else {
-		log.Printf("[ERROR] path %v does not exist", event.RawPath)
+		log.Error(fmt.Sprintf("path %v does not exist", event.RawPath))
 		resp = util.GenerateResponseBody(fmt.Sprintf("Path does not exist %v", event.RawPath), 404, nil, headers, []string{})
 		return resp, nil
 	}
 }
 
 func main() {
+	log.SetFormatter(&log.JSONFormatter{})
+
 	config := configuration{
 		TableName:  os.Getenv("TABLE_NAME"),
 		UserPoolID: os.Getenv("USER_POOL_ID"),
-		db:         dynamodb.New(session.Must(session.NewSession())),
-		idp:        cognitoidentityprovider.New(session.Must(session.NewSession())),
+		DB:         dynamodb.New(session.Must(session.NewSession())),
+		IDP:        cognitoidentityprovider.New(session.Must(session.NewSession())),
 	}
 
 	app := application{config: config}

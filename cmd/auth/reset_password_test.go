@@ -34,7 +34,7 @@ func TestResetPassword(t *testing.T) {
 			ClientPoolID:     "test",
 			UserPoolID:       "test",
 			ClientPoolSecret: "test",
-			idp:              idpMock,
+			IDP:              idpMock,
 		}}
 
 		event := resetPasswordEvent{

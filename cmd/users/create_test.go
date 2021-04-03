@@ -31,7 +31,7 @@ func TestCreateUser(t *testing.T) {
 
 		app := application{config: configuration{
 			UserPoolID: "test",
-			idp:        idpMock,
+			IDP:        idpMock,
 		}}
 		tenantID := "12345"
 

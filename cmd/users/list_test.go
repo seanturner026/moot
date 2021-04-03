@@ -26,7 +26,7 @@ func TestListUsers(t *testing.T) {
 
 		app := application{config: configuration{
 			TableName: "test",
-			db:        dbMock,
+			DB:        dbMock,
 		}}
 		tenantID := "1234567890"
 

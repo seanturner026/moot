@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -17,12 +16,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
 	"github.com/seanturner026/serverless-release-dashboard/internal/util"
-	"go.uber.org/zap"
+	log "github.com/sirupsen/logrus"
 )
 
 type application struct {
 	Config configuration
-	Logger *zap.Logger
 }
 
 type configuration struct {
@@ -37,28 +35,29 @@ type configuration struct {
 	LambdaReleasesRoleARN     string
 	LambdaRepositoriesRoleArn string
 	LambdaUsersRoleArn        string
-	db                        dynamodbiface.DynamoDBAPI
-	iam                       iamiface.IAMAPI
-	idp                       cognitoidentityprovideriface.CognitoIdentityProviderAPI
-	ssm                       ssmiface.SSMAPI
+	DB                        dynamodbiface.DynamoDBAPI
+	IAM                       iamiface.IAMAPI
+	IDP                       cognitoidentityprovideriface.CognitoIdentityProviderAPI
+	SSM                       ssmiface.SSMAPI
 }
 
 func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
 	headers := map[string]string{"Content-Type": "application/json"}
 
 	if event.RawPath == "/admin/overview" {
-		log.Printf("[INFO] handling request on %s", event.RawPath)
+		log.Info(fmt.Sprintf("handling request on %s", event.RawPath))
 		message, statusCode := app.overviewHandler()
 		return util.GenerateResponseBody(message, statusCode, nil, headers, []string{}), nil
 
 	} else {
-		log.Printf("[ERROR] path %s does not exist", event.RawPath)
+		log.Error(fmt.Sprintf("path %s does not exist", event.RawPath))
 		return util.GenerateResponseBody(fmt.Sprintf("Path does not exist %v", event.RawPath), 404, nil, headers, []string{}), nil
 	}
 }
 
 func main() {
-	logger, _ := zap.NewProduction()
+	log.SetFormatter(&log.JSONFormatter{})
+
 	config := configuration{
 		AccountID:                 os.Getenv("ACCOUNT_ID"),
 		Region:                    os.Getenv("REGION"),
@@ -71,15 +70,14 @@ func main() {
 		LambdaReleasesRoleARN:     os.Getenv("LAMBDA_RELEASES_ROLE_ARN"),
 		LambdaRepositoriesRoleArn: os.Getenv("LAMBDA_REPOSITORIES_ROLE_ARN"),
 		LambdaUsersRoleArn:        os.Getenv("LAMBDA_USERS_ROLE_ARN"),
-		db:                        dynamodb.New(session.Must(session.NewSession())),
-		iam:                       iam.New(session.Must(session.NewSession())),
-		idp:                       cognitoidentityprovider.New(session.Must(session.NewSession())),
-		ssm:                       ssm.New(session.Must(session.NewSession())),
+		DB:                        dynamodb.New(session.Must(session.NewSession())),
+		IAM:                       iam.New(session.Must(session.NewSession())),
+		IDP:                       cognitoidentityprovider.New(session.Must(session.NewSession())),
+		SSM:                       ssm.New(session.Must(session.NewSession())),
 	}
 
 	app := application{
 		Config: config,
-		Logger: logger,
 	}
 
 	lambda.Start(app.handler)

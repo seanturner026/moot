@@ -25,9 +25,9 @@ func TestStageBatchWrites(t *testing.T) {
 			Error:    nil,
 		}
 
-		app := application{aws: awsController{
+		app := application{AWS: awsController{
 			TableName: "test",
-			db:        dbMock,
+			DB:        dbMock,
 		}}
 
 		event := deleteRepositoriesEvent{
@@ -37,7 +37,7 @@ func TestStageBatchWrites(t *testing.T) {
 			TenantID: "test",
 		}
 
-		err := app.aws.stageBatchWrites(event)
+		err := app.AWS.stageBatchWrites(event)
 		if err != nil {
 			t.Fatal("Repos should have been staged")
 		}
@@ -51,9 +51,9 @@ func TestDeleteRepositories(t *testing.T) {
 			Error:    nil,
 		}
 
-		app := application{aws: awsController{
+		app := application{AWS: awsController{
 			TableName: "test",
-			db:        dbMock,
+			DB:        dbMock,
 		}}
 
 		requestItems := []*dynamodb.WriteRequest{
@@ -71,7 +71,7 @@ func TestDeleteRepositories(t *testing.T) {
 			},
 		}
 
-		err := app.aws.deleteRepositories(requestItems)
+		err := app.AWS.deleteRepositories(requestItems)
 		if err != nil {
 			t.Fatal("Repo should have been deleted")
 		}

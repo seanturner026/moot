@@ -3,13 +3,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	log "github.com/sirupsen/logrus"
 )
 
 type deleteRepositoriesEvent struct {
@@ -41,7 +41,7 @@ func (app awsController) stageBatchWrites(e deleteRepositoriesEvent) error {
 	if len(repositories) != 0 {
 		app.deleteRepositories(repositories)
 	}
-	log.Println("[INFO] Deleted IDs successfully")
+	log.Info("deleted IDs successfully")
 	return nil
 }
 
@@ -52,19 +52,19 @@ func (app awsController) deleteRepositories(requestItems []*dynamodb.WriteReques
 		},
 	}
 
-	resp, err := app.db.BatchWriteItem(input)
+	resp, err := app.DB.BatchWriteItem(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			log.Printf("[ERROR] %v", aerr.Error())
+			log.Error(fmt.Sprintf("%v", aerr.Error()))
 		} else {
-			log.Printf("[ERROR] %v", err.Error())
+			log.Error(fmt.Sprintf("%v", err.Error()))
 		}
 		return err
 	}
 
 	if len(resp.UnprocessedItems) != 0 {
 		// NOTE(SMT): need to implement
-		log.Printf("[ERROR] IDs %v not deleted, retrying", resp.UnprocessedItems)
+		log.Error(fmt.Sprintf("ids %v not deleted, retrying", resp.UnprocessedItems))
 	}
 
 	return nil
@@ -74,11 +74,11 @@ func (app application) repositoriesDeleteHandler(event events.APIGatewayV2HTTPRe
 	e := deleteRepositoriesEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
 	if err != nil {
-		log.Printf("[ERROR] %v", err)
+		log.Error(fmt.Sprintf("%v", err))
 	}
 	e.TenantID = tenantID
 
-	err = app.aws.stageBatchWrites(e)
+	err = app.AWS.stageBatchWrites(e)
 	if err != nil {
 		message := "Failed to delete repositories"
 		statusCode := 400

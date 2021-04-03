@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
@@ -13,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/google/go-github/github"
+	log "github.com/sirupsen/logrus"
 	"github.com/xanzy/go-gitlab"
 	"golang.org/x/oauth2"
 )
@@ -36,9 +36,9 @@ func (app awsController) getProviderToken(e createRepoEvent, tenantID string) (s
 	resp, err := app.ssm.GetParameter(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			log.Printf("[ERROR] %v", aerr.Error())
+			log.Error(fmt.Sprintf("%v", aerr.Error()))
 		} else {
-			log.Printf("[ERROR] %v", err.Error())
+			log.Error(fmt.Sprintf("%v", err.Error()))
 		}
 		return "", err
 	}
@@ -79,16 +79,16 @@ func (app awsController) writeRepoToDB(e createRepoEvent, itemInput map[string]*
 		TableName:              aws.String(app.TableName),
 		Item:                   itemInput,
 	}
-	_, err := app.db.PutItem(input)
+	_, err := app.DB.PutItem(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			log.Printf("[ERROR] %v", aerr.Error())
+			log.Error(fmt.Sprintf("%v", aerr.Error()))
 		} else {
-			log.Printf("[ERROR] %v", err.Error())
+			log.Error(fmt.Sprintf("%v", err.Error()))
 		}
 		return err
 	}
-	log.Printf("[INFO] Wrote ID %s successfully", e.RepoName)
+	log.Info(fmt.Sprintf("wrote ID %s successfully", e.RepoName))
 	return nil
 }
 
@@ -96,10 +96,10 @@ func (app application) repositoriesCreateHandler(event events.APIGatewayV2HTTPRe
 	e := createRepoEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
 	if err != nil {
-		log.Printf("[ERROR] %v", err)
+		log.Error(fmt.Sprintf("%v", err))
 	}
 	e.TenantID = tenantID
-	token, err := app.aws.getProviderToken(e, tenantID)
+	token, err := app.AWS.getProviderToken(e, tenantID)
 	if err != nil {
 		message := fmt.Sprintf("Unable to onboard %s, please double check that the token has read/write access to this repository", e.RepoName)
 		statusCode := 400
@@ -111,11 +111,11 @@ func (app application) repositoriesCreateHandler(event events.APIGatewayV2HTTPRe
 		ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
 		tc := oauth2.NewClient(githubCtx, ts)
 
-		app.gh = githubController{
+		app.GH = githubController{
 			Client:    github.NewClient(tc),
 			GithubCtx: githubCtx,
 		}
-		err = app.gh.confirmTokenAccess(e)
+		err = app.GH.confirmTokenAccess(e)
 		if err != nil {
 			message := fmt.Sprintf("Provided %s token is unable to access repository %s", e.RepoProvider, e.RepoName)
 			statusCode := 401
@@ -126,10 +126,10 @@ func (app application) repositoriesCreateHandler(event events.APIGatewayV2HTTPRe
 		if err != nil {
 			log.Fatalf("Failed to create client: %v", err)
 		}
-		app.gl = gitlabController{
+		app.GL = gitlabController{
 			Client: clientGitlab,
 		}
-		err = app.gl.confirmTokenAccess(e)
+		err = app.GL.confirmTokenAccess(e)
 		if err != nil {
 			message := fmt.Sprintf("Provided %s token is unable to access repository %s", e.RepoProvider, e.RepoName)
 			statusCode := 401
@@ -144,7 +144,7 @@ func (app application) repositoriesCreateHandler(event events.APIGatewayV2HTTPRe
 		return message, statusCode
 	}
 
-	err = app.aws.writeRepoToDB(e, itemInput)
+	err = app.AWS.writeRepoToDB(e, itemInput)
 	if err != nil {
 		message := fmt.Sprintf("Failed to write record %s to DynamoDB table", e.RepoName)
 		statusCode := 400

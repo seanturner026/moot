@@ -3,8 +3,8 @@ package main
 import (
 	"errors"
 	"fmt"
-	"log"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/xanzy/go-gitlab"
 )
 
@@ -25,10 +25,10 @@ func (app gitlabController) createMergeRequest(e releaseEvent) (gitlab.MergeRequ
 		Squash:             gitlab.Bool(false),
 	}
 
-	log.Printf("[INFO] creating %v merge request...", e.RepoName)
+	log.Info(fmt.Sprintf("creating %v merge request...", e.RepoName))
 	resp, _, err := app.Client.MergeRequests.CreateMergeRequest(e.GitlabProjectID, input)
 	if err != nil {
-		log.Printf("[ERROR] unable to create %v pull request, %v", e.RepoName, err)
+		log.Error(fmt.Sprintf("unable to create %v pull request, %v", e.RepoName, err))
 		return *resp, err
 	}
 
@@ -42,11 +42,11 @@ func (app gitlabController) pollMergeRequestStatus(e releaseEvent, mergeRequestI
 		IncludeRebaseInProgress:     gitlab.Bool(false),
 	}
 
-	log.Printf("[INFO] checking %v merge request %v mergability...", e.RepoName, mergeRequestID)
+	log.Info(fmt.Sprintf("checking %v merge request %v mergability...", e.RepoName, mergeRequestID))
 	for i := 0; i < 7; i++ {
 		resp, _, err := app.Client.MergeRequests.GetMergeRequest(e.GitlabProjectID, mergeRequestID, input)
 		if err != nil {
-			log.Printf("[ERROR] unable to check %v merge request %v mergability, %v", e.RepoName, mergeRequestID, err)
+			log.Error(fmt.Sprintf("unable to check %v merge request %v mergability, %v", e.RepoName, mergeRequestID, err))
 			return err
 		}
 		if resp.MergeStatus == "can_be_merged" {
@@ -66,10 +66,10 @@ func (app gitlabController) acceptMergeRequest(e releaseEvent, mergeRequestID in
 		ShouldRemoveSourceBranch: gitlab.Bool(true),
 	}
 
-	log.Printf("[INFO] completing %v merge request %v...", e.RepoName, mergeRequestID)
+	log.Info(fmt.Sprintf("completing %v merge request %v...", e.RepoName, mergeRequestID))
 	_, _, err := app.Client.MergeRequests.AcceptMergeRequest(e.GitlabProjectID, mergeRequestID, input)
 	if err != nil {
-		log.Printf("[ERROR], unable to merge %v merge request %v, %v", e.RepoName, mergeRequestID, err)
+		log.Error(fmt.Sprintf("unable to merge %v merge request %v, %v", e.RepoName, mergeRequestID, err))
 		return err
 	}
 
@@ -84,10 +84,10 @@ func (app gitlabController) createRelease(e releaseEvent) error {
 		Ref:         gitlab.String(e.BranchBase),
 	}
 
-	log.Printf("[INFO] releasing %v version %v...", e.RepoName, e.ReleaseVersion)
+	log.Info(fmt.Sprintf("releasing %v version %v...", e.RepoName, e.ReleaseVersion))
 	_, _, err := app.Client.Releases.CreateRelease(e.GitlabProjectID, input)
 	if err != nil {
-		log.Printf("[ERROR], unable to create %v release %v, %v", e.RepoName, e.ReleaseVersion, err)
+		log.Error(fmt.Sprintf("unable to create %v release %v, %v", e.RepoName, e.ReleaseVersion, err))
 		return err
 	}
 
@@ -99,7 +99,7 @@ func (app application) releasesGitlabHandler(e releaseEvent, token string) (stri
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
-	app.gl = gitlabController{
+	app.GL = gitlabController{
 		ProjectID:          e.GitlabProjectID,
 		MergeRequestSquash: false,
 		RemoveSourceBranch: true,
@@ -107,14 +107,14 @@ func (app application) releasesGitlabHandler(e releaseEvent, token string) (stri
 	}
 
 	if !e.Hotfix {
-		createMergeRequestResp, err := app.gl.createMergeRequest(e)
+		createMergeRequestResp, err := app.GL.createMergeRequest(e)
 		if err != nil {
 			message := fmt.Sprintf("Unable to create %v merge request, please check the merge request on gitlab for further details", e.RepoName)
 			statusCode := 400
 			return message, statusCode
 		}
 
-		err = app.gl.pollMergeRequestStatus(e, createMergeRequestResp.IID)
+		err = app.GL.pollMergeRequestStatus(e, createMergeRequestResp.IID)
 		if err != nil {
 			message := fmt.Sprintf("Unable to merge %v merge request %v, please check the merge request on gitlab for further details",
 				e.RepoName,
@@ -123,7 +123,7 @@ func (app application) releasesGitlabHandler(e releaseEvent, token string) (stri
 			return message, statusCode
 		}
 
-		err = app.gl.acceptMergeRequest(e, createMergeRequestResp.IID)
+		err = app.GL.acceptMergeRequest(e, createMergeRequestResp.IID)
 		if err != nil {
 			message := fmt.Sprintf("Unable to complete %v merge request %v, please check the merge request on gitlab for further details",
 				e.RepoName,
@@ -133,7 +133,7 @@ func (app application) releasesGitlabHandler(e releaseEvent, token string) (stri
 		}
 	}
 
-	err = app.gl.createRelease(e)
+	err = app.GL.createRelease(e)
 	if err != nil {
 		message := fmt.Sprintf("Unable to create %v release", e.RepoName)
 		statusCode := 400

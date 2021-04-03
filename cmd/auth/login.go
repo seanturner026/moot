@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/seanturner026/serverless-release-dashboard/internal/util"
+	log "github.com/sirupsen/logrus"
 )
 
 type userAuthEvent struct {
@@ -59,25 +60,25 @@ func (app application) generateAuthInput(e userAuthEvent, path string, secretHas
 func (app application) loginUser(e userAuthEvent, input *cognitoidentityprovider.InitiateAuthInput) (userAuthResponse, bool, error) {
 	loginUserResp := userAuthResponse{}
 	var newPasswordRequired bool
-	resp, err := app.config.idp.InitiateAuth(input)
+	resp, err := app.config.IDP.InitiateAuth(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			log.Printf("[ERROR] %v", aerr.Error())
+			log.Error(fmt.Sprintf("%v", aerr.Error()))
 		} else {
-			log.Printf("[ERROR] %v", err.Error())
+			log.Error(fmt.Sprintf("%v", err.Error()))
 		}
 		newPasswordRequired = false
 		return loginUserResp, newPasswordRequired, err
 	}
 
 	if aws.StringValue(resp.ChallengeName) == "NEW_PASSWORD_REQUIRED" {
-		log.Printf("[INFO] New password required for %v", e.EmailAddress)
+		log.Info(fmt.Sprintf("new password required for %v", e.EmailAddress))
 		newPasswordRequired = true
 		loginUserResp.SessionID = *resp.Session
 		loginUserResp.UserID = *resp.ChallengeParameters["USER_ID_FOR_SRP"]
 		return loginUserResp, newPasswordRequired, nil
 	}
-	log.Printf("[INFO] Authenticated user %v successfully", e.EmailAddress)
+	log.Info(fmt.Sprintf("authenticated user %v successfully", e.EmailAddress))
 
 	now := time.Now()
 	loginUserResp.ExpiresAt = now.Add(time.Second * time.Duration(*resp.AuthenticationResult.ExpiresIn))
@@ -103,12 +104,12 @@ func (app application) getTenantID(organizationName string) (string, error) {
 		ReturnConsumedCapacity: aws.String("NONE"),
 		TableName:              aws.String(app.config.TableName),
 	}
-	resp, err := app.config.db.GetItem(input)
+	resp, err := app.config.DB.GetItem(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			log.Printf("[ERROR] %v", aerr.Error())
+			log.Error(fmt.Sprintf("%v", aerr.Error()))
 		} else {
-			log.Printf("[ERROR] %v", err.Error())
+			log.Error(fmt.Sprintf("%v", err.Error()))
 		}
 		return "", err
 	}
@@ -116,7 +117,7 @@ func (app application) getTenantID(organizationName string) (string, error) {
 	organizationID := &tenantLookupResponse{}
 	err = dynamodbattribute.UnmarshalMap(resp.Item, organizationID)
 	if err != nil {
-		log.Printf("[ERROR] unable to unmarshal dyanmodb response into organizationID")
+		log.Error("unable to unmarshal dyanmodb response into organizationID")
 	}
 	return organizationID.ID, nil
 }
@@ -125,9 +126,10 @@ func (app application) authLoginHandler(event events.APIGatewayV2HTTPRequest, he
 	e := userAuthEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
 	if err != nil {
-		log.Printf("[ERROR] %v", err)
+		log.Error(fmt.Sprintf("%v", err))
 	}
 
+	e.TenantName = strings.ReplaceAll(strings.Title(e.TenantName), " ", "")
 	secretHash := util.GenerateSecretHash(app.config.ClientPoolSecret, e.EmailAddress, app.config.ClientPoolID)
 	input := app.generateAuthInput(e, event.RawPath, secretHash)
 	loginUserResp, newPasswordRequired, err := app.loginUser(e, input)

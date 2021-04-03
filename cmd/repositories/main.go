@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -15,18 +14,19 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
 	"github.com/google/go-github/github"
 	util "github.com/seanturner026/serverless-release-dashboard/internal/util"
+	log "github.com/sirupsen/logrus"
 	"github.com/xanzy/go-gitlab"
 )
 
 type application struct {
-	aws awsController
-	gh  githubController
-	gl  gitlabController
+	AWS awsController
+	GH  githubController
+	GL  gitlabController
 }
 
 type awsController struct {
 	TableName string
-	db        dynamodbiface.DynamoDBAPI
+	DB        dynamodbiface.DynamoDBAPI
 	ssm       ssmiface.SSMAPI
 }
 
@@ -57,32 +57,34 @@ func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.API
 	tenantID := util.ExtractTenantID(IDToken)
 
 	if event.RawPath == "/repositories/create" {
-		log.Printf("[INFO] handling request on %s", event.RawPath)
+		log.Info(fmt.Sprintf("handling request on %s", event.RawPath))
 		message, statusCode := app.repositoriesCreateHandler(event, tenantID)
 		return util.GenerateResponseBody(message, statusCode, nil, headers, []string{}), nil
 
 	} else if event.RawPath == "/repositories/delete" {
-		log.Printf("[INFO] handling request on %s", event.RawPath)
+		log.Info(fmt.Sprintf("handling request on %s", event.RawPath))
 		message, statusCode := app.repositoriesDeleteHandler(event, tenantID)
 		return util.GenerateResponseBody(message, statusCode, nil, headers, []string{}), nil
 
 	} else if event.RawPath == "/repositories/list" {
-		log.Printf("[INFO] handling request on %s", event.RawPath)
+		log.Info(fmt.Sprintf("handling request on %s", event.RawPath))
 		message, statusCode := app.repositoriesListHandler(event, tenantID)
 		return util.GenerateResponseBody(message, statusCode, nil, headers, []string{}), nil
 
 	} else {
-		log.Printf("[ERROR] path %v does not exist", event.RawPath)
+		log.Error(fmt.Sprintf("path %v does not exist", event.RawPath))
 		resp := util.GenerateResponseBody(fmt.Sprintf("Path does not exist %s", event.RawPath), 404, nil, headers, []string{})
 		return resp, nil
 	}
 }
 
 func main() {
+	log.SetFormatter(&log.JSONFormatter{})
+
 	app := application{
-		aws: awsController{
+		AWS: awsController{
 			TableName: os.Getenv("TABLE_NAME"),
-			db:        dynamodb.New(session.Must(session.NewSession())),
+			DB:        dynamodb.New(session.Must(session.NewSession())),
 			ssm:       ssm.New(session.Must(session.NewSession())),
 		},
 	}
