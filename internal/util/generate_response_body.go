@@ -27,10 +27,13 @@ func GenerateResponseBody(message string, statusCode int, err error, headers map
 		}
 	}
 
-	body, marshalErr := json.Marshal(ResponseBody{
-		Headers: headers,
-		Message: message,
-	})
+	body, marshalErr := json.Marshal(
+		ResponseBody{
+			Headers: headers,
+			Message: message,
+		},
+	)
+
 	if marshalErr != nil {
 		log.Error(fmt.Sprintf("unable to marshal response, %v", marshalErr))
 		statusCode = 404

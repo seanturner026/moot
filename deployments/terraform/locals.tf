@@ -8,17 +8,22 @@ locals {
     }
     github_token = {
       path            = "/deploy-tower/12345/github/token"
-      description     = "Token for Github.com access."
+      description     = "Token for Github access."
       parameter_value = var.github_token
     }
     gitlab_token = {
       path            = "/deploy-tower/12345/gitlab/token"
-      description     = "Token for Gitlab.com access."
+      description     = "Token for Gitlab access."
       parameter_value = var.gitlab_token
     }
     slack_webhook_url = {
       description     = "URL to send slack message payloads to."
       parameter_value = var.slack_webhook_url
+    }
+    stripe_token = {
+      path            = "/deploy-tower/12345/stripe/token"
+      description     = "Token for Stripe access."
+      parameter_value = var.stripe_token
     }
   }
 

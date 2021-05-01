@@ -18,12 +18,12 @@ import (
 )
 
 type createRepoEvent struct {
-	TenantID        string `dynamodbav:"PK" json:"tenant_id,omitempty"`
-	RepoProvider    string `dynamodbav:"SK" json:"repo_provider"`
-	RepoName        string `dynamodbav:"-" json:"repo_name"`
-	RepoOwner       string `dynamodbav:"RepoOwner" json:"repo_owner"`
-	BranchBase      string `dynamodbav:"BranchBase" json:"branch_base"`
-	BranchHead      string `dynamodbav:"BranchHead" json:"branch_head"`
+	TenantID        string `dynamodbav:"PK"                        json:"tenant_id,omitempty"`
+	RepoProvider    string `dynamodbav:"SK"                        json:"repo_provider"`
+	RepoName        string `dynamodbav:"-"                         json:"repo_name"`
+	RepoOwner       string `dynamodbav:"RepoOwner"                 json:"repo_owner"`
+	BranchBase      string `dynamodbav:"BranchBase"                json:"branch_base"`
+	BranchHead      string `dynamodbav:"BranchHead"                json:"branch_head"`
 	GitlabProjectID string `dynamodbav:"GitlabProjectID,omitempty" json:"gitlab_repo_id,omitempty"`
 }
 

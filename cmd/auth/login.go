@@ -38,7 +38,7 @@ type userAuthResponse struct {
 
 func (app application) generateAuthInput(e userAuthEvent, path string, secretHash string) *cognitoidentityprovider.InitiateAuthInput {
 	input := &cognitoidentityprovider.InitiateAuthInput{}
-	input.ClientId = aws.String(app.config.ClientPoolID)
+	input.ClientId = aws.String(app.Config.ClientPoolID)
 	if path == "/auth/login" {
 		input.AuthFlow = aws.String("USER_PASSWORD_AUTH")
 		input.AuthParameters = map[string]*string{
@@ -60,7 +60,7 @@ func (app application) generateAuthInput(e userAuthEvent, path string, secretHas
 func (app application) loginUser(e userAuthEvent, input *cognitoidentityprovider.InitiateAuthInput) (userAuthResponse, bool, error) {
 	loginUserResp := userAuthResponse{}
 	var newPasswordRequired bool
-	resp, err := app.config.IDP.InitiateAuth(input)
+	resp, err := app.IDP.InitiateAuth(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			log.Error(fmt.Sprintf("%v", aerr.Error()))
@@ -102,9 +102,9 @@ func (app application) getTenantID(organizationName string) (string, error) {
 		ConsistentRead:         aws.Bool(false),
 		ProjectionExpression:   aws.String("ID"),
 		ReturnConsumedCapacity: aws.String("NONE"),
-		TableName:              aws.String(app.config.TableName),
+		TableName:              aws.String(app.Config.TableName),
 	}
-	resp, err := app.config.DB.GetItem(input)
+	resp, err := app.DB.GetItem(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			log.Error(fmt.Sprintf("%v", aerr.Error()))
@@ -130,7 +130,7 @@ func (app application) authLoginHandler(event events.APIGatewayV2HTTPRequest, he
 	}
 
 	e.TenantName = strings.ReplaceAll(strings.Title(e.TenantName), " ", "")
-	secretHash := util.GenerateSecretHash(app.config.ClientPoolSecret, e.EmailAddress, app.config.ClientPoolID)
+	secretHash := util.GenerateSecretHash(app.Config.ClientPoolSecret, e.EmailAddress, app.Config.ClientPoolID)
 	input := app.generateAuthInput(e, event.RawPath, secretHash)
 	loginUserResp, newPasswordRequired, err := app.loginUser(e, input)
 	if err != nil {

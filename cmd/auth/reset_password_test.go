@@ -30,12 +30,14 @@ func TestResetPassword(t *testing.T) {
 			Error: nil,
 		}
 
-		app := application{config: configuration{
-			ClientPoolID:     "test",
-			UserPoolID:       "test",
-			ClientPoolSecret: "test",
-			IDP:              idpMock,
-		}}
+		app := application{
+			Config: configuration{
+				ClientPoolID:     "test",
+				UserPoolID:       "test",
+				ClientPoolSecret: "test",
+			},
+			IDP: idpMock,
+		}
 
 		event := resetPasswordEvent{
 			EmailAddress: "user@example.com",

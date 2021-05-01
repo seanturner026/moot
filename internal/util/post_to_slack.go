@@ -11,7 +11,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// slackRequestBody defines the schema for POSTs to Slack webhooks
 type slackRequestBody struct {
 	Text string `json:"text"`
 }

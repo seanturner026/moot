@@ -47,17 +47,15 @@ func generatePutItemInputExpression(e onboardingEvent) (map[string]*dynamodb.Att
 
 func (app application) writeOrgToDynamoDB(e onboardingEvent, itemInput map[string]*dynamodb.AttributeValue) error {
 	input := &dynamodb.PutItemInput{
-		Item: itemInput,
-		ConditionExpression: aws.String(
-			"attribute_not_exists(PK) AND attribute_not_exists(SK) AND attribute_not_exists(Contact)",
-		),
+		Item:                        itemInput,
+		ConditionExpression:         aws.String("attribute_not_exists(PK) AND attribute_not_exists(SK) AND attribute_not_exists(Contact)"),
 		ReturnConsumedCapacity:      aws.String("NONE"),
 		ReturnItemCollectionMetrics: aws.String("NONE"),
 		ReturnValues:                aws.String("NONE"),
 		TableName:                   aws.String(app.Config.TableName),
 	}
 
-	_, err := app.Config.DB.PutItem(input)
+	_, err := app.DB.PutItem(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			log.Error(aerr.Error())
@@ -93,7 +91,7 @@ func (app application) createCognitoUser(e onboardingEvent, wg *sync.WaitGroup, 
 			},
 		},
 	}
-	resp, err := app.Config.IDP.AdminCreateUser(input)
+	resp, err := app.IDP.AdminCreateUser(input)
 	if err != nil {
 		res := onboardingChannel{Error: err, Type: "cognito"}
 		if awsErr, ok := err.(awserr.Error); ok {
@@ -148,7 +146,7 @@ func (app application) createIAMRoleAndCognitoGroup(
 		},
 	}
 
-	iamResp, err := app.Config.IAM.CreateRole(iamInput)
+	iamResp, err := app.IAM.CreateRole(iamInput)
 	if err != nil {
 		res := onboardingChannel{Error: err, Type: "iam"}
 		if awsErr, ok := err.(awserr.Error); ok {
@@ -167,7 +165,7 @@ func (app application) createIAMRoleAndCognitoGroup(
 		UserPoolId:  aws.String(app.Config.UserPoolID),
 	}
 
-	_, err = app.Config.IDP.CreateGroup(cognitoInput)
+	_, err = app.IDP.CreateGroup(cognitoInput)
 	if err != nil {
 		res := onboardingChannel{Error: err, Type: "cognito"}
 		if awsErr, ok := err.(awserr.Error); ok {
@@ -200,7 +198,7 @@ func (app application) createParameters(tenantID, provider string, wg *sync.Wait
 		Type:  aws.String("SecureString"),
 		Value: aws.String("42"),
 	}
-	_, err := app.Config.SSM.PutParameter(input)
+	_, err := app.SSM.PutParameter(input)
 	if err != nil {
 		res := onboardingChannel{Error: err, Type: "ssm"}
 		if awsErr, ok := err.(awserr.Error); ok {
@@ -219,7 +217,7 @@ func (app application) addUserToCognitoGroup(groupName string, wg *sync.WaitGrou
 		UserPoolId: aws.String(app.Config.UserPoolID),
 		Username:   aws.String(cognitoUsername),
 	}
-	_, err := app.Config.IDP.AdminAddUserToGroup(input)
+	_, err := app.IDP.AdminAddUserToGroup(input)
 	if err != nil {
 		res := onboardingChannel{Error: err, Type: "cognito"}
 		if awsErr, ok := err.(awserr.Error); ok {
@@ -253,7 +251,7 @@ func (app application) writeUserToDynamoDB(e onboardingEvent, wg *sync.WaitGroup
 		ReturnValues:                aws.String("NONE"),
 		TableName:                   aws.String(app.Config.TableName),
 	}
-	_, err := app.Config.DB.PutItem(input)
+	_, err := app.DB.PutItem(input)
 	if err != nil {
 		res := onboardingChannel{Error: err, Type: "dynamodb"}
 		if awsErr, ok := err.(awserr.Error); ok {
@@ -285,7 +283,7 @@ func (app application) addPermissionsToRole(tenantID string, roleName string, wg
 		PolicyName:     aws.String("TenantExecutionPolicy"),
 		RoleName:       aws.String(roleName),
 	}
-	_, err := app.Config.IAM.PutRolePolicy(input)
+	_, err := app.IAM.PutRolePolicy(input)
 	if err != nil {
 		res := onboardingChannel{Error: err, Type: "iam"}
 		if awsErr, ok := err.(awserr.Error); ok {
@@ -319,7 +317,7 @@ func (app application) updateOrgStatusToOnboarded(e onboardingEvent) error {
 		UpdateExpression: aws.String("SET #s = :s"),
 	}
 
-	_, err := app.Config.DB.UpdateItem(input)
+	_, err := app.DB.UpdateItem(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			log.Error(aerr.Error())
@@ -348,7 +346,7 @@ func (app application) onboardingCreateHandler(event events.APIGatewayV2HTTPRequ
 
 	itemInput, err := generatePutItemInputExpression(e)
 	if err != nil {
-		message := "Something's gone wrong and there's been an issue onboarding your oganization. We will be in touch."
+		message := "Something's gone wrong and there's been an issue onboarding your organization. We will be in touch."
 		statusCode := 400
 		return message, statusCode
 	}
@@ -384,7 +382,7 @@ func (app application) onboardingCreateHandler(event events.APIGatewayV2HTTPRequ
 		if slackErr != nil {
 			log.Error(fmt.Sprintf("unable to send onboarding failure notification for %s ID %s", e.TenantName, e.TenantID))
 		}
-		message := "Something's gone wrong and there's been an issue onboarding your oganization. We will be in touch."
+		message := "Something's gone wrong and there's been an issue onboarding your organization. We will be in touch."
 		statusCode := 400
 		return message, statusCode
 	}
@@ -408,7 +406,7 @@ func (app application) onboardingCreateHandler(event events.APIGatewayV2HTTPRequ
 		if slackErr != nil {
 			log.Error(fmt.Sprintf("unable to send onboarding failure notification for %s ID %s", e.TenantName, e.TenantID))
 		}
-		message := "Something's gone wrong and there's been an issue onboarding your oganization. We will be in touch."
+		message := "Something's gone wrong and there's been an issue onboarding your organization. We will be in touch."
 		statusCode := 400
 		return message, statusCode
 	}

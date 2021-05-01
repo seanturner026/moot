@@ -16,7 +16,9 @@ import (
 )
 
 type application struct {
-	config configuration
+	Config configuration
+	DB     dynamodbiface.DynamoDBAPI
+	IDP    cognitoidentityprovideriface.CognitoIdentityProviderAPI
 }
 
 type configuration struct {
@@ -24,8 +26,6 @@ type configuration struct {
 	ClientPoolID     string
 	UserPoolID       string
 	ClientPoolSecret string
-	DB               dynamodbiface.DynamoDBAPI
-	IDP              cognitoidentityprovideriface.CognitoIdentityProviderAPI
 }
 
 func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
@@ -55,11 +55,13 @@ func main() {
 		ClientPoolID:     os.Getenv("CLIENT_POOL_ID"),
 		UserPoolID:       os.Getenv("USER_POOL_ID"),
 		ClientPoolSecret: os.Getenv("CLIENT_POOL_SECRET"),
-		DB:               dynamodb.New(session.Must(session.NewSession())),
-		IDP:              cognitoidentityprovider.New(session.Must(session.NewSession())),
 	}
 
-	app := application{config: config}
+	app := application{
+		Config: config,
+		DB:     dynamodb.New(session.Must(session.NewSession())),
+		IDP:    cognitoidentityprovider.New(session.Must(session.NewSession())),
+	}
 
 	lambda.Start(app.handler)
 }

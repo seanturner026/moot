@@ -26,12 +26,12 @@ func (app application) resetPassword(e resetPasswordEvent, secretHash string) (s
 			"NEW_PASSWORD": aws.String(e.NewPassword),
 			"SECRET_HASH":  aws.String(secretHash),
 		},
-		ClientId:   aws.String(app.config.ClientPoolID),
-		UserPoolId: aws.String(app.config.UserPoolID),
+		ClientId:   aws.String(app.Config.ClientPoolID),
+		UserPoolId: aws.String(app.Config.UserPoolID),
 		Session:    aws.String(e.SessionID),
 	}
 
-	resp, err := app.config.IDP.AdminRespondToAuthChallenge(input)
+	resp, err := app.IDP.AdminRespondToAuthChallenge(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			log.Error(fmt.Sprintf("%v", aerr.Error()))
@@ -51,7 +51,7 @@ func (app application) authResetPasswordHandler(event events.APIGatewayV2HTTPReq
 		log.Error(fmt.Sprintf("%v", err))
 	}
 
-	secretHash := util.GenerateSecretHash(app.config.ClientPoolSecret, e.EmailAddress, app.config.ClientPoolID)
+	secretHash := util.GenerateSecretHash(app.Config.ClientPoolSecret, e.EmailAddress, app.Config.ClientPoolID)
 	AccessToken, err := app.resetPassword(e, secretHash)
 	if err != nil {
 		message := fmt.Sprintf("Error changing user %v password", e.EmailAddress)

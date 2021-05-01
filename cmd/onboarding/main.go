@@ -21,6 +21,10 @@ import (
 
 type application struct {
 	Config configuration
+	DB     dynamodbiface.DynamoDBAPI
+	IAM    iamiface.IAMAPI
+	IDP    cognitoidentityprovideriface.CognitoIdentityProviderAPI
+	SSM    ssmiface.SSMAPI
 }
 
 type configuration struct {
@@ -35,10 +39,6 @@ type configuration struct {
 	LambdaReleasesRoleARN     string
 	LambdaRepositoriesRoleArn string
 	LambdaUsersRoleArn        string
-	DB                        dynamodbiface.DynamoDBAPI
-	IAM                       iamiface.IAMAPI
-	IDP                       cognitoidentityprovideriface.CognitoIdentityProviderAPI
-	SSM                       ssmiface.SSMAPI
 }
 
 func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
@@ -70,14 +70,14 @@ func main() {
 		LambdaReleasesRoleARN:     os.Getenv("LAMBDA_RELEASES_ROLE_ARN"),
 		LambdaRepositoriesRoleArn: os.Getenv("LAMBDA_REPOSITORIES_ROLE_ARN"),
 		LambdaUsersRoleArn:        os.Getenv("LAMBDA_USERS_ROLE_ARN"),
-		DB:                        dynamodb.New(session.Must(session.NewSession())),
-		IAM:                       iam.New(session.Must(session.NewSession())),
-		IDP:                       cognitoidentityprovider.New(session.Must(session.NewSession())),
-		SSM:                       ssm.New(session.Must(session.NewSession())),
 	}
 
 	app := application{
 		Config: config,
+		DB:     dynamodb.New(session.Must(session.NewSession())),
+		IAM:    iam.New(session.Must(session.NewSession())),
+		IDP:    cognitoidentityprovider.New(session.Must(session.NewSession())),
+		SSM:    ssm.New(session.Must(session.NewSession())),
 	}
 
 	lambda.Start(app.handler)

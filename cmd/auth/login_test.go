@@ -30,11 +30,13 @@ func TestLoginUser(t *testing.T) {
 			Error: nil,
 		}
 
-		app := application{config: configuration{
-			ClientPoolID: "test",
-			UserPoolID:   "test",
-			IDP:          idpMock,
-		}}
+		app := application{
+			Config: configuration{
+				ClientPoolID: "test",
+				UserPoolID:   "test",
+			},
+			IDP: idpMock,
+		}
 
 		event := userAuthEvent{
 			EmailAddress: "user@example.com",
@@ -63,11 +65,13 @@ func TestLoginUser(t *testing.T) {
 			Error: nil,
 		}
 
-		app := application{config: configuration{
-			ClientPoolID: "test",
-			UserPoolID:   "test",
-			IDP:          idpMock,
-		}}
+		app := application{
+			Config: configuration{
+				ClientPoolID: "test",
+				UserPoolID:   "test",
+			},
+			IDP: idpMock,
+		}
 
 		event := userAuthEvent{
 			EmailAddress: "user@example.com",
@@ -96,11 +100,13 @@ func TestLoginUser(t *testing.T) {
 			Error: nil,
 		}
 
-		app := application{config: configuration{
-			ClientPoolID: "test",
-			UserPoolID:   "test",
-			IDP:          idpMock,
-		}}
+		app := application{
+			Config: configuration{
+				ClientPoolID: "test",
+				UserPoolID:   "test",
+			},
+			IDP: idpMock,
+		}
 
 		event := userAuthEvent{
 			EmailAddress: "user@example.com",
