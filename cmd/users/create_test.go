@@ -3,33 +3,38 @@ package main
 import (
 	"testing"
 
-	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
-	cidpif "github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
+	cognitoidentityproviderif "github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
 )
 
 type mockAdminCreateUser struct {
-	cidpif.CognitoIdentityProviderAPI
-	Response *cidp.AdminCreateUserOutput
+	cognitoidentityproviderif.CognitoIdentityProviderAPI
+	Response *cognitoidentityprovider.AdminCreateUserOutput
 	Error    error
 }
 
-func (m mockAdminCreateUser) AdminCreateUser(*cidp.AdminCreateUserInput) (*cidp.AdminCreateUserOutput, error) {
+func (m mockAdminCreateUser) AdminCreateUser(*cognitoidentityprovider.AdminCreateUserInput) (*cognitoidentityprovider.AdminCreateUserOutput, error) {
 	return m.Response, nil
 }
 
 func TestCreateUser(t *testing.T) {
 	t.Run("Successfully create user", func(t *testing.T) {
 		idpMock := mockAdminCreateUser{
-			Response: &cidp.AdminCreateUserOutput{},
-			Error:    nil,
+			Response: &cognitoidentityprovider.AdminCreateUserOutput{
+				User: &cognitoidentityprovider.UserType{
+					Username: aws.String("12345"),
+				},
+			},
+			Error: nil,
 		}
 
-		app := application{config: configuration{
+		app := application{Config: configuration{
 			UserPoolID: "test",
-			idp:        idpMock,
+			IDP:        idpMock,
 		}}
 
-		err := app.createUser(createUserEvent{EmailAddress: "user@example.com"})
+		_, err := app.createUser(createUserEvent{EmailAddress: "user@example.com"})
 		if err != nil {
 			t.Fatal("User should have been created")
 		}

@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"log"
+	"fmt"
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	log "github.com/sirupsen/logrus"
 )
 
 func (app awsController) listRepos() (dynamodb.QueryOutput, error) {
@@ -24,16 +25,15 @@ func (app awsController) listRepos() (dynamodb.QueryOutput, error) {
 		TableName:              aws.String(app.TableName),
 	}
 
-	resp, err := app.db.Query(input)
+	resp, err := app.DB.Query(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			log.Printf("[ERROR] %v", aerr.Error())
+			log.Error(fmt.Sprintf("%v", aerr.Error()))
 		} else {
-			log.Printf("[ERROR] %v", err.Error())
+			log.Error(fmt.Sprintf("%v", err.Error()))
 		}
 		return *resp, err
 	}
-
 	return *resp, err
 }
 
@@ -44,7 +44,7 @@ func (r *repository) removeDynamoRepoPartion() {
 }
 
 func (app application) repositoriesListHandler(event events.APIGatewayV2HTTPRequest) (string, int) {
-	output, err := app.aws.listRepos()
+	output, err := app.AWS.listRepos()
 	if err != nil {
 		message := "Failed to query repositories"
 		statusCode := 400
@@ -66,7 +66,7 @@ func (app application) repositoriesListHandler(event events.APIGatewayV2HTTPRequ
 	body, err := json.Marshal(repos)
 	statusCode := 200
 	if err != nil {
-		log.Printf("[ERROR] Unable to marshal json for response, %v", err)
+		log.Error(fmt.Sprintf("unable to marshal json for response, %v", err))
 		statusCode = 400
 	}
 

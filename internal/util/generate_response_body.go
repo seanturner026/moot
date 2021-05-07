@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	log "github.com/sirupsen/logrus"
 )
 
 // ResponseBody is contains the response sent to the client
@@ -27,12 +27,15 @@ func GenerateResponseBody(message string, statusCode int, err error, headers map
 		}
 	}
 
-	body, marshalErr := json.Marshal(ResponseBody{
-		Headers: headers,
-		Message: message,
-	})
+	body, marshalErr := json.Marshal(
+		ResponseBody{
+			Headers: headers,
+			Message: message,
+		},
+	)
+
 	if marshalErr != nil {
-		log.Printf("[ERROR] Unable to marshal response, %v", marshalErr)
+		log.Error(fmt.Sprintf("unable to marshal response, %v", marshalErr))
 		statusCode = 404
 	}
 

@@ -3,13 +3,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	cidp "github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
+	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/seanturner026/serverless-release-dashboard/internal/util"
+	log "github.com/sirupsen/logrus"
 )
 
 type resetPasswordEvent struct {
@@ -19,24 +19,24 @@ type resetPasswordEvent struct {
 }
 
 func (app application) resetPassword(e resetPasswordEvent, secretHash string) (string, error) {
-	input := &cidp.AdminRespondToAuthChallengeInput{
+	input := &cognitoidentityprovider.AdminRespondToAuthChallengeInput{
 		ChallengeName: aws.String("NEW_PASSWORD_REQUIRED"),
 		ChallengeResponses: map[string]*string{
 			"USERNAME":     aws.String(e.EmailAddress),
 			"NEW_PASSWORD": aws.String(e.NewPassword),
 			"SECRET_HASH":  aws.String(secretHash),
 		},
-		ClientId:   aws.String(app.config.ClientPoolID),
-		UserPoolId: aws.String(app.config.UserPoolID),
+		ClientId:   aws.String(app.Config.ClientPoolID),
+		UserPoolId: aws.String(app.Config.UserPoolID),
 		Session:    aws.String(e.SessionID),
 	}
 
-	resp, err := app.config.idp.AdminRespondToAuthChallenge(input)
+	resp, err := app.IDP.AdminRespondToAuthChallenge(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			log.Printf("[ERROR] %v", aerr.Error())
+			log.Error(fmt.Sprintf("%v", aerr.Error()))
 		} else {
-			log.Printf("[ERROR] %v", err.Error())
+			log.Error(fmt.Sprintf("%v", err.Error()))
 		}
 		return "", err
 	}
@@ -48,10 +48,10 @@ func (app application) authResetPasswordHandler(event events.APIGatewayV2HTTPReq
 	e := resetPasswordEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
 	if err != nil {
-		log.Printf("[ERROR] %v", err)
+		log.Error(fmt.Sprintf("%v", err))
 	}
 
-	secretHash := util.GenerateSecretHash(app.config.ClientPoolSecret, e.EmailAddress, app.config.ClientPoolID)
+	secretHash := util.GenerateSecretHash(app.Config.ClientPoolSecret, e.EmailAddress, app.Config.ClientPoolID)
 	AccessToken, err := app.resetPassword(e, secretHash)
 	if err != nil {
 		message := fmt.Sprintf("Error changing user %v password", e.EmailAddress)

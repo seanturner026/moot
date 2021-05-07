@@ -1,4 +1,5 @@
-data "aws_region" "this" {}
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
 
 data "null_data_source" "wait_for_lambda_build" {
   for_each = local.lambdas
@@ -45,7 +46,7 @@ data "aws_iam_policy_document" "policy" {
 data "aws_iam_policy_document" "s3" {
   statement {
     actions   = ["s3:GetObject"]
-    resources = ["arn:aws:s3:::release-dashboard-${var.account_id}/*"]
+    resources = ["arn:aws:s3:::release-dashboard-${data.aws_caller_identity.current.account_id}/*"]
 
     principals {
       type        = "AWS"

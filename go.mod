@@ -1,6 +1,6 @@
 module github.com/seanturner026/serverless-release-dashboard
 
-go 1.15
+go 1.16
 
 require (
 	github.com/aws/aws-lambda-go v1.22.0
@@ -10,6 +10,7 @@ require (
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.6.8 // indirect
+	github.com/sirupsen/logrus v1.8.1
 	github.com/xanzy/go-gitlab v0.44.0
 	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110 // indirect
 	golang.org/x/oauth2 v0.0.0-20210220000619-9bb904979d93

@@ -14,17 +14,26 @@ resource "aws_dynamodb_table" "this" {
     type = "S"
   }
 
-  attribute {
-    name = "RepoProvider"
-    type = "S"
-  }
-
-  global_secondary_index {
-    name            = var.global_secondary_index_name
-    hash_key        = "SK"
-    range_key       = "RepoProvider"
-    projection_type = "ALL"
-  }
-
   tags = var.tags
+}
+
+resource "random_uuid" "this" {
+  count = var.enable_admin_user_creation ? 1 : 0
+}
+
+resource "aws_dynamodb_table_item" "this" {
+  count      = var.enable_admin_user_creation ? 1 : 0
+  depends_on = [null_resource.create_admin_user]
+
+  table_name = aws_dynamodb_table.this.name
+  hash_key   = aws_dynamodb_table.this.hash_key
+  range_key  = aws_dynamodb_table.this.range_key
+
+  item = templatefile(
+    "${path.root}/assets/dynamodb_put_item_input.json",
+    {
+      admin_user_email = var.admin_user_email
+      uud              = random_uuid.this[0].id
+    }
+  )
 }

@@ -1,0 +1,11 @@
+{
+  "PK": {
+    "S": "user"
+  },
+  "SK": {
+    "S": "${admin_user_email}"
+  },
+  "ID": {
+    "S": "${uud}"
+  }
+}
