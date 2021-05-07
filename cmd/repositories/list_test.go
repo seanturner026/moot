@@ -24,12 +24,12 @@ func TestListRepos(t *testing.T) {
 			Error:    nil,
 		}
 
-		app := application{aws: awsController{
+		app := application{AWS: awsController{
 			TableName: "test",
-			db:        dbMock,
+			DB:        dbMock,
 		}}
 
-		_, err := app.aws.listRepos()
+		_, err := app.AWS.listRepos()
 		if err != nil {
 			t.Fatal("Query should have returned results")
 		}

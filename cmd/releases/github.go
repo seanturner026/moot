@@ -3,9 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/google/go-github/github"
+	log "github.com/sirupsen/logrus"
+	"golang.org/x/oauth2"
 )
 
 type githubController struct {
@@ -22,7 +23,7 @@ func (app githubController) CreatePullRequest(e releaseEvent) (github.PullReques
 		Body:  github.String(e.ReleaseBody),
 	}
 
-	log.Printf("[INFO] creating %v pull request...", e.RepoName)
+	log.Info(fmt.Sprintf("creating %v pull request...", e.RepoName))
 	resp, _, err := app.Client.PullRequests.Create(
 		app.GithubCtx,
 		e.RepoOwner,
@@ -31,7 +32,7 @@ func (app githubController) CreatePullRequest(e releaseEvent) (github.PullReques
 	)
 
 	if err != nil {
-		log.Printf("[ERROR] unable to create %v pull request, %v", e.RepoName, err)
+		log.Error(fmt.Sprintf("unable to create %v pull request, %v", e.RepoName, err))
 		return *resp, err
 	}
 
@@ -40,7 +41,7 @@ func (app githubController) CreatePullRequest(e releaseEvent) (github.PullReques
 
 // MergePullRequest merges the pull request created by ghCreatePullRequest
 func (app githubController) MergePullRequest(prNumber int, e releaseEvent) (github.PullRequestMergeResult, error) {
-	log.Printf("[INFO] merging pull request %v...", prNumber)
+	log.Info(fmt.Sprintf("merging pull request %v...", prNumber))
 	mergeResult, _, err := app.Client.PullRequests.Merge(
 		app.GithubCtx,
 		e.RepoOwner,
@@ -51,7 +52,7 @@ func (app githubController) MergePullRequest(prNumber int, e releaseEvent) (gith
 	)
 
 	if err != nil {
-		log.Printf("[ERROR], unable to merge %v pull request %v, %v", e.RepoName, prNumber, err)
+		log.Error(fmt.Sprintf("unable to merge %v pull request %v, %v", e.RepoName, prNumber, err))
 		return *mergeResult, err
 	}
 	return *mergeResult, nil
@@ -67,7 +68,7 @@ func (app githubController) CreateRelease(e releaseEvent) error {
 		Prerelease:      github.Bool(false),
 	}
 
-	log.Printf("[INFO] creating %v release version %v...", e.RepoName, e.ReleaseVersion)
+	log.Info(fmt.Sprintf("creating %v release version %v...", e.RepoName, e.ReleaseVersion))
 	_, _, err := app.Client.Repositories.CreateRelease(
 		app.GithubCtx,
 		e.RepoOwner,
@@ -76,16 +77,25 @@ func (app githubController) CreateRelease(e releaseEvent) error {
 	)
 
 	if err != nil {
-		log.Printf("[ERROR] Unable to create %v release version %v, %v", e.RepoName, e.ReleaseVersion, err)
+		log.Error(fmt.Sprintf("unable to create %v release version %v, %v", e.RepoName, e.ReleaseVersion, err))
 		return err
 	}
 	return nil
 }
 
-func (app application) releasesGithubHandler(e releaseEvent) (string, int) {
+func (app application) releasesGithubHandler(e releaseEvent, token string) (string, int) {
+	githubCtx := context.Background()
+	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
+	tc := oauth2.NewClient(githubCtx, ts)
+
+	app.GH = githubController{
+		Client:    github.NewClient(tc),
+		GithubCtx: githubCtx,
+	}
+
 	var err error
 	if !e.Hotfix {
-		prResp, err := app.gh.CreatePullRequest(e)
+		prResp, err := app.GH.CreatePullRequest(e)
 		if err != nil {
 			message := fmt.Sprintf("Could not create Github pull request for %v version %v, please check github for further details.",
 				e.RepoName,
@@ -94,7 +104,7 @@ func (app application) releasesGithubHandler(e releaseEvent) (string, int) {
 			return message, statusCode
 		}
 
-		mergeResp, err := app.gh.MergePullRequest(*prResp.Number, e)
+		mergeResp, err := app.GH.MergePullRequest(*prResp.Number, e)
 		if err != nil {
 			message := fmt.Sprintf("API request to merge github pull request %v for %v version %v failed, please check the pull request on github for further details.",
 				*prResp.Number,
@@ -105,7 +115,7 @@ func (app application) releasesGithubHandler(e releaseEvent) (string, int) {
 		}
 
 		if !*mergeResp.Merged {
-			log.Printf("[ERROR] %v pull request %v not merged", e.RepoName, *prResp.Number)
+			log.Error(fmt.Sprintf("%v pull request %v not merged", e.RepoName, *prResp.Number))
 			message := fmt.Sprintf("API request to merge github pull request %v for %v version %v failed, please check the pull request on github for further details.",
 				*prResp.Number,
 				e.RepoName,
@@ -115,7 +125,7 @@ func (app application) releasesGithubHandler(e releaseEvent) (string, int) {
 		}
 	}
 
-	err = app.gh.CreateRelease(e)
+	err = app.GH.CreateRelease(e)
 	if err != nil {
 		message := fmt.Sprintf("Unable to create %v release version %v on Github.",
 			e.RepoName,

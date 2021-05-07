@@ -1,12 +1,12 @@
 [
   {
     "resource": "/",
-    "path": "/users/login",
+    "path": "/auth/login",
     "httpMethod": "POST",
     "requestContext": {
       "resourcePath": "/",
       "httpMethod": "POST",
-      "path": "/users/login"
+      "path": "/auth/login"
     },
     "headers": {},
     "multiValueHeaders": {},
@@ -19,12 +19,12 @@
   },
   {
     "resource": "/",
-    "path": "/users/refresh/token",
+    "path": "/auth/refresh/token",
     "httpMethod": "POST",
     "requestContext": {
       "resourcePath": "/",
       "httpMethod": "POST",
-      "path": "/users/refresh/token"
+      "path": "/auth/refresh/token"
     },
     "headers": {},
     "multiValueHeaders": {},
@@ -37,12 +37,12 @@
   },
   {
     "resource": "/",
-    "path": "/users/reset/password",
+    "path": "/auth/reset/password",
     "httpMethod": "POST",
     "requestContext": {
       "resourcePath": "/",
       "httpMethod": "POST",
-      "path": "/users/reset/password"
+      "path": "/auth/reset/password"
     },
     "headers": {},
     "multiValueHeaders": {},

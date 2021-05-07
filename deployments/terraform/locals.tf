@@ -7,11 +7,11 @@ locals {
       parameter_value = aws_cognito_user_pool_client.this.client_secret
     }
     github_token = {
-      description     = "Token for Github.com access."
+      description     = "Token for Github access."
       parameter_value = var.github_token
     }
     gitlab_token = {
-      description     = "Token for Gitlab.com access."
+      description     = "Token for Gitlab access."
       parameter_value = var.gitlab_token
     }
     slack_webhook_url = {
@@ -27,6 +27,7 @@ locals {
       environment = {
         CLIENT_POOL_ID     = aws_cognito_user_pool_client.this.id
         CLIENT_POOL_SECRET = aws_ssm_parameter.this["client_pool_secret"].value
+        TABLE_NAME         = aws_dynamodb_table.this.id
         USER_POOL_ID       = aws_cognito_user_pool.this.id
       }
       routes = {
@@ -46,11 +47,9 @@ locals {
     }
 
     releases = {
-      description = "Creates github releases for repository specified in the event."
+      description = "Creates github and gitlab releases for repository specified in the event."
       authorizer  = true
       environment = {
-        GITHUB_TOKEN      = aws_ssm_parameter.this["github_token"].value
-        GITLAB_TOKEN      = aws_ssm_parameter.this["gitlab_token"].value
         SLACK_WEBHOOK_URL = aws_ssm_parameter.this["slack_webhook_url"].value
         TABLE_NAME        = aws_dynamodb_table.this.id
       }
@@ -63,17 +62,18 @@ locals {
           actions   = ["dynamodb:UpdateItem"]
           resources = [aws_dynamodb_table.this.arn]
         }
+        ssm = {
+          actions   = ["ssm:GetParameter"]
+          resources = [aws_ssm_parameter.this["github_token"].arn, aws_ssm_parameter.this["gitlab_token"].arn]
+        }
       }
     }
 
     repositories = {
-      description = "Writes github repository details to DynamoDB."
+      description = "Writes github and gitlab repository details to DynamoDB."
       authorizer  = true
       environment = {
-        GITHUB_TOKEN                = aws_ssm_parameter.this["github_token"].value
-        GITLAB_TOKEN                = aws_ssm_parameter.this["gitlab_token"].value
-        GLOBAL_SECONDARY_INDEX_NAME = var.global_secondary_index_name
-        TABLE_NAME                  = aws_dynamodb_table.this.id
+        TABLE_NAME = aws_dynamodb_table.this.id
       }
       routes = {
         "/repositories/create" = "POST"
@@ -88,10 +88,11 @@ locals {
             "dynamodb:Query",
             "dynamodb:UpdateItem",
           ]
-          resources = [
-            aws_dynamodb_table.this.arn,
-            "${aws_dynamodb_table.this.arn}/index/${var.global_secondary_index_name}",
-          ]
+          resources = [aws_dynamodb_table.this.arn]
+        }
+        ssm = {
+          actions   = ["ssm:GetParameter"]
+          resources = [aws_ssm_parameter.this["github_token"].arn, aws_ssm_parameter.this["gitlab_token"].arn]
         }
       }
     }
@@ -100,7 +101,8 @@ locals {
       description = "Creates, Lists, and Deletes Cognito Users."
       authorizer  = true
       environment = {
-        REGION       = data.aws_region.this.name
+        REGION       = data.aws_region.current.name
+        TABLE_NAME   = aws_dynamodb_table.this.id
         USER_POOL_ID = aws_cognito_user_pool.this.id
       }
       routes = {
@@ -113,9 +115,16 @@ locals {
           actions = [
             "cognito-idp:AdminCreateUser",
             "cognito-idp:AdminDeleteUser",
-            "cognito-idp:ListUsers"
           ]
           resources = [aws_cognito_user_pool.this.arn]
+        }
+        dynamodb = {
+          actions = [
+            "dynamodb:DeleteItem",
+            "dynamodb:PutItem",
+            "dynamodb:Query",
+          ]
+          resources = [aws_dynamodb_table.this.arn]
         }
       }
     }

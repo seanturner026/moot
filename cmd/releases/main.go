@@ -1,10 +1,8 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -14,10 +12,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
-	"github.com/google/go-github/github"
+	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
 	"github.com/seanturner026/serverless-release-dashboard/internal/util"
-	"github.com/xanzy/go-gitlab"
-	"golang.org/x/oauth2"
+	log "github.com/sirupsen/logrus"
 )
 
 // releaseEvent is an API Gateway POST which contains information necessary to create a release on
@@ -35,19 +33,40 @@ type releaseEvent struct {
 }
 
 type application struct {
-	aws    awsController
-	gh     githubController
-	gl     gitlabController
+	AWS    awsController
+	GH     githubController
+	GL     gitlabController
 	Config configuration
 }
 
 type awsController struct {
 	TableName string
-	db        dynamodbiface.DynamoDBAPI
+	DB        dynamodbiface.DynamoDBAPI
+	SSM       ssmiface.SSMAPI
 }
 
 type configuration struct {
 	SlackWebhookURL string
+}
+
+func (app awsController) getProviderToken(e releaseEvent) (string, error) {
+	input := &ssm.GetParameterInput{
+		Name:           aws.String(fmt.Sprintf("/dev_release_dashboard/%s_token", e.RepoProvider)),
+		WithDecryption: aws.Bool(true),
+	}
+
+	resp, err := app.SSM.GetParameter(input)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			log.Error(fmt.Sprintf("%v", aerr.Error()))
+		} else {
+			log.Error(fmt.Sprintf("%v", err.Error()))
+		}
+		return "", err
+	}
+
+	token := *resp.Parameter.Value
+	return token, nil
 }
 
 func (app awsController) updateCurrentVersion(e releaseEvent) error {
@@ -69,13 +88,13 @@ func (app awsController) updateCurrentVersion(e releaseEvent) error {
 		UpdateExpression: aws.String("SET CurrentVersion = :cv"),
 	}
 
-	log.Printf("[INFO] updating %v latest version to %v...", e.RepoName, e.ReleaseVersion)
-	_, err := app.db.UpdateItem(input)
+	log.Info(fmt.Sprintf("updating %v latest version to %v...", e.RepoName, e.ReleaseVersion))
+	_, err := app.DB.UpdateItem(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			log.Printf("[ERROR] %v", aerr.Error())
+			log.Error(fmt.Sprintf("%v", aerr.Error()))
 		} else {
-			log.Printf("[ERROR] %v", err.Error())
+			log.Error(fmt.Sprintf("%v", err.Error()))
 		}
 		return err
 	}
@@ -85,24 +104,32 @@ func (app awsController) updateCurrentVersion(e releaseEvent) error {
 // handler executes the release and notification workflow
 func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
 	headers := map[string]string{"Content-Type": "application/json"}
+
 	e := releaseEvent{}
 	err := json.Unmarshal([]byte(event.Body), &e)
 	if err != nil {
-		log.Printf("[ERROR] %v", err)
+		log.Error(fmt.Sprintf("%v", err))
+	}
+
+	token, err := app.AWS.getProviderToken(e)
+	if err != nil {
+		message := fmt.Sprintf("Unable to release %s version %s, please double check the %s token", e.RepoName, e.ReleaseVersion, e.RepoProvider)
+		statusCode := 400
+		return util.GenerateResponseBody(message, statusCode, nil, headers, []string{}), nil
 	}
 
 	var message string
 	var statusCode int
 	if event.RawPath == "/releases/create/github" {
-		log.Printf("[INFO] handling request on %v", event.RawPath)
-		message, statusCode = app.releasesGithubHandler(e)
+		log.Info(fmt.Sprintf("handling request on %v", event.RawPath))
+		message, statusCode = app.releasesGithubHandler(e, token)
 
 	} else if event.RawPath == "/releases/create/gitlab" {
-		log.Printf("[INFO] handling request on %v", event.RawPath)
-		message, statusCode = app.releasesGitlabHandler(e)
+		log.Info(fmt.Sprintf("handling request on %v", event.RawPath))
+		message, statusCode = app.releasesGitlabHandler(e, token)
 
 	} else {
-		log.Printf("[ERROR] path %v does not exist", event.RawPath)
+		log.Error(fmt.Sprintf("path %v does not exist", event.RawPath))
 		return util.GenerateResponseBody(fmt.Sprintf("Path does not exist %v", event.RawPath), 404, nil, headers, []string{}), nil
 	}
 
@@ -120,7 +147,7 @@ func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.API
 		}
 	}
 
-	err = app.aws.updateCurrentVersion(e)
+	err = app.AWS.updateCurrentVersion(e)
 	if err != nil {
 		message := fmt.Sprintf("Released %v version %v successfully, unable to update latest version in backend", e.RepoName, e.ReleaseVersion)
 		statusCode := 200
@@ -131,38 +158,17 @@ func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.API
 }
 
 func main() {
+	log.SetFormatter(&log.JSONFormatter{})
+
 	app := application{
-		aws: awsController{
+		AWS: awsController{
 			TableName: os.Getenv("TABLE_NAME"),
-			db:        dynamodb.New(session.Must(session.NewSession())),
+			DB:        dynamodb.New(session.Must(session.NewSession())),
+			SSM:       ssm.New(session.Must(session.NewSession())),
 		},
 		Config: configuration{
 			SlackWebhookURL: os.Getenv("SLACK_WEBHOOK_URL"),
 		},
-	}
-
-	if os.Getenv("GITHUB_TOKEN") != "" {
-		githubCtx := context.Background()
-		ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")})
-		tc := oauth2.NewClient(githubCtx, ts)
-
-		app.gh = githubController{
-			Client:    github.NewClient(tc),
-			GithubCtx: githubCtx,
-		}
-	}
-
-	if os.Getenv("GITLAB_TOKEN") != "" {
-		clientGitlab, err := gitlab.NewClient(os.Getenv("GITLAB_TOKEN"))
-		if err != nil {
-			log.Fatalf("Failed to create client: %v", err)
-		}
-		app.gl = gitlabController{
-			ProjectID:          "",
-			MergeRequestSquash: false,
-			RemoveSourceBranch: true,
-			Client:             clientGitlab,
-		}
 	}
 
 	lambda.Start(app.handler)

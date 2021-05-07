@@ -7,19 +7,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 )
 
-type mockMarshalMap struct {
-	Response map[string]*dynamodb.AttributeValue
-	Error    error
-}
-
 type mockPutItem struct {
 	dynamodbiface.DynamoDBAPI
 	Response *dynamodb.PutItemOutput
 	Error    error
-}
-
-func (m mockMarshalMap) MarshalMap(createRepoEvent) (map[string]*dynamodb.AttributeValue, error) {
-	return m.Response, nil
 }
 
 func (m mockPutItem) PutItem(*dynamodb.PutItemInput) (*dynamodb.PutItemOutput, error) {
@@ -35,7 +26,7 @@ func TestGeneratePutItemInupt(t *testing.T) {
 			BranchBase: "test",
 		}
 
-		_, _, err := generatePutItemInput(event)
+		_, err := generatePutItemInputExpression(event)
 		if err != nil {
 			t.Fatal("Input should have been marshalled for DynamoDB")
 		}
@@ -49,9 +40,9 @@ func TestWriteRepoToDB(t *testing.T) {
 			Error:    nil,
 		}
 
-		app := application{aws: awsController{
+		app := application{AWS: awsController{
 			TableName: "test",
-			db:        dbMock,
+			DB:        dbMock,
 		}}
 
 		event := createRepoEvent{
@@ -61,9 +52,9 @@ func TestWriteRepoToDB(t *testing.T) {
 			BranchBase: "test",
 		}
 
-		_, input, _ := generatePutItemInput(event)
+		input, _ := generatePutItemInputExpression(event)
 
-		err := app.aws.writeRepoToDB(event, input)
+		err := app.AWS.writeRepoToDB(event, input)
 		if err != nil {
 			t.Fatal("Input should have been written to DynamoDB")
 		}
