@@ -1,13 +1,12 @@
 resource "aws_cognito_user_pool" "this" {
-  name                     = var.tags.name
+  name                     = var.name
   username_attributes      = ["email"]
   auto_verified_attributes = ["email"]
 
   admin_create_user_config {
-
     invite_message_template {
-      email_subject = "Serverless Release Dashboard User Signup"
-      email_message = file("${path.root}/assets/cognito_invite_template.html")
+      email_subject = "Moot User Signup"
+      email_message = file("${path.module}/assets/cognito_invite_template.html")
       sms_message   = <<-MESSAGE
       username: {username}
       password: {####}
@@ -35,12 +34,15 @@ resource "aws_cognito_user_pool" "this" {
 }
 
 resource "aws_cognito_user_pool_client" "this" {
-  name                                 = var.tags.name
+  name                                 = var.name
   user_pool_id                         = aws_cognito_user_pool.this.id
   generate_secret                      = true
   allowed_oauth_flows                  = ["code", "implicit"]
   allowed_oauth_flows_user_pool_client = true
   allowed_oauth_scopes                 = ["email", "openid"]
+  supported_identity_providers         = ["COGNITO"]
+  callback_urls                        = ["https://${var.fqdn_alias}"]
+
   explicit_auth_flows = [
     "ALLOW_ADMIN_USER_PASSWORD_AUTH",
     "ALLOW_CUSTOM_AUTH",
@@ -48,12 +50,10 @@ resource "aws_cognito_user_pool_client" "this" {
     "ALLOW_USER_PASSWORD_AUTH",
     "ALLOW_USER_SRP_AUTH",
   ]
-  supported_identity_providers = ["COGNITO"]
-  callback_urls                = ["https://localhost:3000"]
 }
 
 resource "aws_cognito_identity_pool" "this" {
-  identity_pool_name               = var.tags.name
+  identity_pool_name               = var.name
   allow_unauthenticated_identities = false
 
   cognito_identity_providers {
@@ -65,10 +65,17 @@ resource "aws_cognito_identity_pool" "this" {
 }
 
 resource "null_resource" "create_admin_user" {
-  count      = var.enable_admin_user_creation ? 1 : 0
-  depends_on = [aws_lambda_function.this]
+  count = var.admin_user_email != "" && !var.enable_delete_admin_user ? 1 : 0
 
   provisioner "local-exec" {
     command = "aws --region ${data.aws_region.current.name} cognito-idp admin-create-user --user-pool-id ${aws_cognito_user_pool.this.id} --username ${var.admin_user_email} --user-attributes Name=email,Value=${var.admin_user_email}"
+  }
+}
+
+resource "null_resource" "delete_admin_user" {
+  count = var.admin_user_email != "" && var.enable_delete_admin_user ? 1 : 0
+
+  provisioner "local-exec" {
+    command = "aws --region ${data.aws_region.current.name} cognito-idp admin-delete-user --user-pool-id ${aws_cognito_user_pool.this.id} --username ${var.admin_user_email}"
   }
 }

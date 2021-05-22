@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
-	"github.com/seanturner026/serverless-release-dashboard/internal/util"
+	"github.com/seanturner026/moot/internal/util"
 	log "github.com/sirupsen/logrus"
 )
 

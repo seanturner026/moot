@@ -1,5 +1,5 @@
 resource "aws_dynamodb_table" "this" {
-  name         = var.tags.name
+  name         = var.name
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "PK"
   range_key    = "SK"
@@ -17,12 +17,8 @@ resource "aws_dynamodb_table" "this" {
   tags = var.tags
 }
 
-resource "random_uuid" "this" {
-  count = var.enable_admin_user_creation ? 1 : 0
-}
-
 resource "aws_dynamodb_table_item" "this" {
-  count      = var.enable_admin_user_creation ? 1 : 0
+  count      = var.admin_user_email != "" && !var.enable_delete_admin_user ? 1 : 0
   depends_on = [null_resource.create_admin_user]
 
   table_name = aws_dynamodb_table.this.name
@@ -30,10 +26,10 @@ resource "aws_dynamodb_table_item" "this" {
   range_key  = aws_dynamodb_table.this.range_key
 
   item = templatefile(
-    "${path.root}/assets/dynamodb_put_item_input.json",
+    "${path.module}/assets/dynamodb_put_item_input.json",
     {
       admin_user_email = var.admin_user_email
-      uud              = random_uuid.this[0].id
+      uuid             = data.external.admin_user_id[0].result.user_id
     }
   )
 }

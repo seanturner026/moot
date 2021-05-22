@@ -1,4 +1,4 @@
-module github.com/seanturner026/serverless-release-dashboard
+module github.com/seanturner026/moot
 
 go 1.16
 
@@ -11,6 +11,7 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.6.8 // indirect
 	github.com/sirupsen/logrus v1.8.1
+	github.com/urfave/cli/v2 v2.2.0
 	github.com/xanzy/go-gitlab v0.44.0
 	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110 // indirect
 	golang.org/x/oauth2 v0.0.0-20210220000619-9bb904979d93

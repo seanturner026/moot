@@ -13,15 +13,16 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
 	"github.com/google/go-github/github"
-	util "github.com/seanturner026/serverless-release-dashboard/internal/util"
+	util "github.com/seanturner026/moot/internal/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/xanzy/go-gitlab"
 )
 
 type application struct {
-	AWS awsController
-	GH  githubController
-	GL  gitlabController
+	AWS    awsController
+	GH     githubController
+	GL     gitlabController
+	Config configuration
 }
 
 type awsController struct {
@@ -39,6 +40,10 @@ type gitlabController struct {
 	MergeRequestSquash bool
 	RemoveSourceBranch bool
 	Client             *gitlab.Client
+}
+
+type configuration struct {
+	DashboardName string
 }
 
 type repository struct {
@@ -84,6 +89,9 @@ func main() {
 			TableName: os.Getenv("TABLE_NAME"),
 			DB:        dynamodb.New(session.Must(session.NewSession())),
 			SSM:       ssm.New(session.Must(session.NewSession())),
+		},
+		Config: configuration{
+			DashboardName: os.Getenv("DASHBOARD_NAME"),
 		},
 	}
 

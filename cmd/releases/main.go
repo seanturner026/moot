@@ -14,7 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
-	"github.com/seanturner026/serverless-release-dashboard/internal/util"
+	"github.com/seanturner026/moot/internal/util"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -46,16 +46,17 @@ type awsController struct {
 }
 
 type configuration struct {
+	DashboardName   string
 	SlackWebhookURL string
 }
 
-func (app awsController) getProviderToken(e releaseEvent) (string, error) {
+func (app application) getProviderToken(e releaseEvent) (string, error) {
 	input := &ssm.GetParameterInput{
-		Name:           aws.String(fmt.Sprintf("/dev_release_dashboard/%s_token", e.RepoProvider)),
+		Name:           aws.String(fmt.Sprintf("/%s/%s_token", app.Config.DashboardName, e.RepoProvider)),
 		WithDecryption: aws.Bool(true),
 	}
 
-	resp, err := app.SSM.GetParameter(input)
+	resp, err := app.AWS.SSM.GetParameter(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			log.Error(fmt.Sprintf("%v", aerr.Error()))
@@ -111,7 +112,7 @@ func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.API
 		log.Error(fmt.Sprintf("%v", err))
 	}
 
-	token, err := app.AWS.getProviderToken(e)
+	token, err := app.getProviderToken(e)
 	if err != nil {
 		message := fmt.Sprintf("Unable to release %s version %s, please double check the %s token", e.RepoName, e.ReleaseVersion, e.RepoProvider)
 		statusCode := 400
@@ -167,6 +168,7 @@ func main() {
 			SSM:       ssm.New(session.Must(session.NewSession())),
 		},
 		Config: configuration{
+			DashboardName:   os.Getenv("DASHBOARD_NAME"),
 			SlackWebhookURL: os.Getenv("SLACK_WEBHOOK_URL"),
 		},
 	}

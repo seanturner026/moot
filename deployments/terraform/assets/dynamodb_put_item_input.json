@@ -6,6 +6,6 @@
     "S": "${admin_user_email}"
   },
   "ID": {
-    "S": "${uud}"
+    "S": "${uuid}"
   }
 }
