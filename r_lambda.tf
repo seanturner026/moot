@@ -5,11 +5,11 @@ resource "null_resource" "lambda_build" {
     binary_exists = local.null.lambda_binary_exists[each.key]
 
     main = join("", [
-      for file in fileset("${local.path}/cmd/${each.key}", "*.go") : filebase64("${local.path}/cmd/${each.key}/${file}")
+      for file in fileset("${path.module}/cmd/${each.key}", "*.go") : filebase64("${path.module}/cmd/${each.key}/${file}")
     ])
 
     util = join("", [
-      for file in fileset("${local.path}/internal/util", "*.go") : filebase64("${local.path}/internal/util/${file}")
+      for file in fileset("${path.module}/internal/util", "*.go") : filebase64("${path.module}/internal/util/${file}")
     ])
   }
 
@@ -18,7 +18,7 @@ resource "null_resource" "lambda_build" {
   }
 
   provisioner "local-exec" {
-    command = "GOOS=linux go build -ldflags '-s -w' -o ${local.path}/bin/${each.key} ${local.path}/cmd/${each.key}/."
+    command = "GOOS=linux go build -ldflags '-s -w' -o ${path.module}/bin/${each.key} ${path.module}/cmd/${each.key}/."
   }
 }
 
@@ -27,16 +27,16 @@ resource "null_resource" "lambda_test" {
 
   triggers = {
     main = join("", [
-      for file in fileset("${local.path}/cmd/${each.key}", "*.go") : filebase64("${local.path}/cmd/${each.key}/${file}")
+      for file in fileset("${path.module}/cmd/${each.key}", "*.go") : filebase64("${path.module}/cmd/${each.key}/${file}")
     ])
 
     util = join("", [
-      for file in fileset("${local.path}/internal/util", "*.go") : filebase64("${local.path}/internal/util/${file}")
+      for file in fileset("${path.module}/internal/util", "*.go") : filebase64("${path.module}/internal/util/${file}")
     ])
   }
 
   provisioner "local-exec" {
-    command = "go test ${local.path}/cmd/${each.key}"
+    command = "go test ${path.module}/cmd/${each.key}"
   }
 }
 
@@ -44,7 +44,7 @@ resource "aws_lambda_function" "this" {
   depends_on = [null_resource.lambda_build, null_resource.lambda_test]
   for_each   = local.lambdas
 
-  filename         = "${local.path}/archive/${each.key}.zip"
+  filename         = "${path.module}/archive/${each.key}.zip"
   function_name    = "${var.name}_${each.key}"
   description      = each.value.description
   role             = aws_iam_role.this[each.key].arn

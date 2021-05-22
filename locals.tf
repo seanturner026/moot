@@ -21,7 +21,7 @@ locals {
   }
 
   null = {
-    lambda_binary_exists = { for key, _ in local.lambdas : key => fileexists("${local.path}/bin/${key}") }
+    lambda_binary_exists = { for key, _ in local.lambdas : key => fileexists("${path.module}/bin/${key}") }
   }
 
   frontend_module_comprehension = [for module in jsondecode(file("${path.root}/.terraform/modules/modules.json"))["Modules"] : module if length(regexall("vuejs_frontend", module.Key)) > 0][0]
