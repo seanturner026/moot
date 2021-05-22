@@ -2,7 +2,7 @@ resource "null_resource" "lambda_build" {
   for_each = local.lambdas
 
   triggers = {
-    binary_exists = fileexists("${local.path}/bin/${each.key}")
+    binary_exists = local.null.lambda_binary_exists[each.key]
 
     main = join("", [
       for file in fileset("${local.path}/cmd/${each.key}", "*.go") : filebase64("${local.path}/cmd/${each.key}/${file}")
@@ -45,7 +45,7 @@ resource "aws_lambda_function" "this" {
   for_each   = local.lambdas
 
   filename         = "${local.path}/archive/${each.key}.zip"
-  function_name    = each.key
+  function_name    = "${var.name}_${each.key}"
   description      = each.value.description
   role             = aws_iam_role.this[each.key].arn
   handler          = each.key

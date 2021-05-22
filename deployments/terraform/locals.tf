@@ -1,5 +1,5 @@
 locals {
-  path = "${path.root}/../.."
+  path = "${path.module}/../.."
 
   ssm_parameters = {
     client_pool_secret = {
@@ -19,6 +19,13 @@ locals {
       parameter_value = var.slack_webhook_url
     }
   }
+
+  null = {
+    lambda_binary_exists = { for key, _ in local.lambdas : key => fileexists("${local.path}/bin/${key}") }
+  }
+
+  frontend_module_comprehension = [for module in jsondecode(file("${path.root}/.terraform/modules/modules.json"))["Modules"] : module if length(regexall("vuejs_frontend", module.Key)) > 0][0]
+  frontend_module_path          = "${path.root}/${local.frontend_module_comprehension.Dir}"
 
   lambdas = {
     auth = {
@@ -50,6 +57,7 @@ locals {
       description = "Creates github and gitlab releases for repository specified in the event."
       authorizer  = true
       environment = {
+        DASHBOARD_NAME    = var.name
         SLACK_WEBHOOK_URL = aws_ssm_parameter.this["slack_webhook_url"].value
         TABLE_NAME        = aws_dynamodb_table.this.id
       }
@@ -73,7 +81,8 @@ locals {
       description = "Writes github and gitlab repository details to DynamoDB."
       authorizer  = true
       environment = {
-        TABLE_NAME = aws_dynamodb_table.this.id
+        DASHBOARD_NAME = var.name
+        TABLE_NAME     = aws_dynamodb_table.this.id
       }
       routes = {
         "/repositories/create" = "POST"

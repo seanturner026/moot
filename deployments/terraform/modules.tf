@@ -1,24 +1,25 @@
+module "vuejs_frontend" {
+  source = "github.com/seanturner026/moot-frontend.git?ref=v0.3.0"
+}
+
 module "cloudfront" {
-  source  = "terraform-aws-modules/cloudfront/aws"
-  version = "v1.8.0"
+  source     = "terraform-aws-modules/cloudfront/aws"
+  version    = "v2.4.0"
+  depends_on = [aws_acm_certificate_validation.this[0]]
 
-  # aliases             = [""]
-  comment             = "Serverless Release Dashboard"
-  enabled             = true
-  is_ipv6_enabled     = true
-  price_class         = "PriceClass_All"
-  retain_on_delete    = false
-  wait_for_deployment = false
-  default_root_object = "/index.html"
-
+  aliases                       = var.fqdn_alias != "" ? [var.fqdn_alias] : null
+  comment                       = "Moot, a Serverless Release Dashboard"
+  enabled                       = true
+  is_ipv6_enabled               = true
+  price_class                   = "PriceClass_All"
+  retain_on_delete              = false
+  wait_for_deployment           = true
+  default_root_object           = "/index.html"
   create_origin_access_identity = true
-  origin_access_identities = {
-    s3 = "Cloudfront access to Serverless Release Dashboard bucket"
-  }
 
-  # logging_config = {
-  #   bucket = "logs-my-cdn.s3.amazonaws.com"
-  # }
+  origin_access_identities = {
+    s3 = "Cloudfront access to moot S3 bucket"
+  }
 
   origin = {
     s3 = {
@@ -40,8 +41,10 @@ module "cloudfront" {
   }
 
   viewer_certificate = {
-    cloudfront_default_certificate = true,
-    minimum_protocol_versione      = "TLSv1"
+    cloudfront_default_certificate = var.hosted_zone_name != "" && var.fqdn_alias != "" ? false : true
+    minimum_protocol_versione      = var.hosted_zone_name != "" && var.fqdn_alias != "" ? "TLSv1.2" : "TLSv1"
+    acm_certificate_arn            = var.hosted_zone_name != "" && var.fqdn_alias != "" ? aws_acm_certificate.this[0].arn : null
+    ssl_support_method             = var.hosted_zone_name != "" && var.fqdn_alias != "" ? "sni-only" : null
   }
 
   custom_error_response = {
