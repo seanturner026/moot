@@ -13,7 +13,7 @@ data "external" "admin_user_id" {
   depends_on = [null_resource.create_admin_user[0]]
 
   program = [
-    "go", "run", "${path.module}/assets/cognito.go",
+    "go", "run", "${path.module}/terraform_assets/cognito.go",
     "--admin-user-email", var.admin_user_email,
     "--user-pool-id", aws_cognito_user_pool.this.id,
   ]

@@ -1,5 +1,5 @@
 module "moot" {
-  source = "../../"
+  source = "github.com/seanturner026/moot.git?ref=terraform-module"
 
   name                           = "moot"
   admin_user_email               = var.admin_user_email

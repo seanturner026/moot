@@ -26,7 +26,7 @@ resource "aws_dynamodb_table_item" "this" {
   range_key  = aws_dynamodb_table.this.range_key
 
   item = templatefile(
-    "${path.module}/assets/dynamodb_put_item_input.json",
+    "${path.module}/terraform_assets/dynamodb_put_item_input.json",
     {
       admin_user_email = var.admin_user_email
       uuid             = data.external.admin_user_id[0].result.user_id
