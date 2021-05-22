@@ -41,19 +41,19 @@ variable "enable_delete_admin_user" {
 variable "github_token" {
   type        = string
   description = "Token for Github."
-  default     = ""
+  default     = "42"
 }
 
 variable "gitlab_token" {
   type        = string
   description = "Token for Gitlab."
-  default     = ""
+  default     = "42"
 }
 
 variable "slack_webhook_url" {
   type        = string
   description = "URL to send slack message payloads to."
-  default     = ""
+  default     = "42"
 }
 
 variable "hosted_zone_name" {
