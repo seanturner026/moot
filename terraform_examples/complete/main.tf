@@ -1,4 +1,4 @@
-module "dashboard" {
+module "moot" {
   source = "../../"
 
   name                           = "moot"
