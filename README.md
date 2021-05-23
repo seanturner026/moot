@@ -21,7 +21,7 @@ This solution utilises the following services:
 
 ```hcl
 module "moot" {
-  source = "github.com/seanturner026/moot.git?ref=v1.0.0"
+  source = "github.com/seanturner026/moot.git"
 
   name                           = "moot"
   admin_user_email               = var.admin_user_email

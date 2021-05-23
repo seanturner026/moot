@@ -13,7 +13,7 @@ data "external" "admin_user_id" {
   depends_on = [null_resource.create_admin_user[0]]
 
   program = [
-    "go", "run", "${path.module}/assets/cognito.go",
+    "go", "run", "${path.module}/terraform_assets/cognito.go",
     "--admin-user-email", var.admin_user_email,
     "--user-pool-id", aws_cognito_user_pool.this.id,
   ]
@@ -24,8 +24,8 @@ data "archive_file" "this" {
   depends_on = [null_resource.lambda_build]
 
   type        = "zip"
-  source_file = "${local.path}/bin/${each.key}"
-  output_path = "${local.path}/archive/${each.key}.zip"
+  source_file = "${path.module}/bin/${each.key}"
+  output_path = "${path.module}/archive/${each.key}.zip"
 }
 
 data "aws_iam_policy_document" "role" {

@@ -24,17 +24,14 @@ variable "admin_user_email" {
 variable "github_token" {
   type        = string
   description = "Token for Github."
-  default     = ""
 }
 
 variable "gitlab_token" {
   type        = string
   description = "Token for Gitlab."
-  default     = ""
 }
 
 variable "slack_webhook_url" {
   type        = string
   description = "URL to send slack message payloads to."
-  default     = ""
 }

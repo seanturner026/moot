@@ -8,20 +8,20 @@ locals {
     }
     github_token = {
       description     = "Token for Github access."
-      parameter_value = var.github_token
+      parameter_value = var.github_token == "" ? 42 : var.github_token
     }
     gitlab_token = {
       description     = "Token for Gitlab access."
-      parameter_value = var.gitlab_token
+      parameter_value = var.gitlab_token == "" ? 42 : var.gitlab_token
     }
     slack_webhook_url = {
       description     = "URL to send slack message payloads to."
-      parameter_value = var.slack_webhook_url
+      parameter_value = var.slack_webhook_url == "" ? 42 : var.slack_webhook_url
     }
   }
 
   null = {
-    lambda_binary_exists = { for key, _ in local.lambdas : key => fileexists("${local.path}/bin/${key}") }
+    lambda_binary_exists = { for key, _ in local.lambdas : key => fileexists("${path.module}/bin/${key}") }
   }
 
   frontend_module_comprehension = [for module in jsondecode(file("${path.root}/.terraform/modules/modules.json"))["Modules"] : module if length(regexall("vuejs_frontend", module.Key)) > 0][0]

@@ -1,5 +1,5 @@
 module "vuejs_frontend" {
-  source = "github.com/seanturner026/moot-frontend.git?ref=v0.3.0"
+  source = "github.com/seanturner026/moot-frontend.git?ref=v0.4.0"
 }
 
 module "cloudfront" {

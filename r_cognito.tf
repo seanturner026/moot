@@ -6,7 +6,7 @@ resource "aws_cognito_user_pool" "this" {
   admin_create_user_config {
     invite_message_template {
       email_subject = "Moot User Signup"
-      email_message = file("${path.module}/assets/cognito_invite_template.html")
+      email_message = file("${path.module}/terraform_assets/cognito_invite_template.html")
       sms_message   = <<-MESSAGE
       username: {username}
       password: {####}
