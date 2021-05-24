@@ -41,7 +41,7 @@ resource "aws_cognito_user_pool_client" "this" {
   allowed_oauth_flows_user_pool_client = true
   allowed_oauth_scopes                 = ["email", "openid"]
   supported_identity_providers         = ["COGNITO"]
-  callback_urls                        = ["https://${var.fqdn_alias}"]
+  callback_urls                        = [var.hosted_zone_name != "" && var.fqdn_alias != "" ? "https://${var.fqdn_alias}" : "https://${module.cloudfront.cloudfront_distribution_domain_name}"]
 
   explicit_auth_flows = [
     "ALLOW_ADMIN_USER_PASSWORD_AUTH",

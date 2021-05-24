@@ -7,7 +7,7 @@ resource "aws_apigatewayv2_api" "this" {
     allow_credentials = true
     allow_headers     = ["Content-Type", "Authorization", "X-Session-Id"]
     allow_methods     = ["GET", "OPTIONS", "POST"]
-    allow_origins     = ["https://${var.fqdn_alias}"]
+    allow_origins     = [var.hosted_zone_name != "" && var.fqdn_alias != "" ? "https://${var.fqdn_alias}" : "https://${module.cloudfront.cloudfront_distribution_domain_name}"]
     max_age           = 600
   }
 
