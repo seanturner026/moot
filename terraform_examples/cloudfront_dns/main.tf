@@ -7,8 +7,6 @@ module "moot" {
   github_token                   = var.github_token
   gitlab_token                   = var.gitlab_token
   slack_webhook_url              = var.slack_webhook_url
-  fqdn_alias                     = "moot.link"
-  hosted_zone_name               = "moot.link"
   enable_api_gateway_access_logs = true
   tags                           = var.tags
 }

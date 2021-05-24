@@ -87,7 +87,7 @@ func (app awsController) writeRepoToDB(e createRepoEvent, itemInput map[string]*
 		}
 		return err
 	}
-	log.Info(fmt.Sprintf("wroterepository %s successfully", e.RepoName))
+	log.Info(fmt.Sprintf("wrote repository %s successfully", e.RepoName))
 	return nil
 }
 
