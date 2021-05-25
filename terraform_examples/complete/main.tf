@@ -2,6 +2,7 @@ module "moot" {
   source = "github.com/seanturner026/moot.git"
 
   name                           = "moot"
+  aws_profile                    = "default"
   admin_user_email               = var.admin_user_email
   enable_delete_admin_user       = false
   github_token                   = var.github_token

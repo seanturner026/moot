@@ -1,4 +1,11 @@
 locals {
+
+  aws_profile                   = var.aws_profile != "" ? var.aws_profile : "default"
+  frontend_module_comprehension = [for module in jsondecode(file("${path.root}/.terraform/modules/modules.json"))["Modules"] : module if length(regexall("vuejs_frontend", module.Key)) > 0][0]
+  frontend_module_path          = "${path.root}/${local.frontend_module_comprehension.Dir}"
+  main_module_name              = split(".terraform/modules/", path.module)[1]
+  main_module_path              = "./.terraform/modules/${local.main_module_name}"
+
   ssm_parameters = {
     client_pool_secret = {
       description     = "Cognito User Pool client secret."
@@ -21,11 +28,6 @@ locals {
   null = {
     lambda_binary_exists = { for key, _ in local.lambdas : key => fileexists("${path.module}/bin/${key}") }
   }
-
-  frontend_module_comprehension = [for module in jsondecode(file("${path.root}/.terraform/modules/modules.json"))["Modules"] : module if length(regexall("vuejs_frontend", module.Key)) > 0][0]
-  frontend_module_path          = "${path.root}/${local.frontend_module_comprehension.Dir}"
-  main_module_path              = "./.terraform/modules/${local.main_module_name}"
-  main_module_name              = split(".terraform/modules/", path.module)[1]
 
   lambdas = {
     auth = {

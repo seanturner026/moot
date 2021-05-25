@@ -7,11 +7,12 @@ bin
 
 # terraform
 **/.terraform/*
+*.auto.tfvars
+*.terraform.lock.hcl
 *.tfstate
 *.tfstate.*
-*.auto.tfvars
+*_override.tf
+*_override.tf.json
 crash.log
 override.tf
 override.tf.json
-*_override.tf
-*_override.tf.json

@@ -63,19 +63,3 @@ resource "aws_cognito_identity_pool" "this" {
 
   tags = var.tags
 }
-
-resource "null_resource" "create_admin_user" {
-  count = var.admin_user_email != "" && !var.enable_delete_admin_user ? 1 : 0
-
-  provisioner "local-exec" {
-    command = "aws --region ${data.aws_region.current.name} cognito-idp admin-create-user --user-pool-id ${aws_cognito_user_pool.this.id} --username ${var.admin_user_email} --user-attributes Name=email,Value=${var.admin_user_email}"
-  }
-}
-
-resource "null_resource" "delete_admin_user" {
-  count = var.admin_user_email != "" && var.enable_delete_admin_user ? 1 : 0
-
-  provisioner "local-exec" {
-    command = "aws --region ${data.aws_region.current.name} cognito-idp admin-delete-user --user-pool-id ${aws_cognito_user_pool.this.id} --username ${var.admin_user_email}"
-  }
-}
