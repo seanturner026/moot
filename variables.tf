@@ -13,14 +13,17 @@ variable "tags" {
 variable "aws_profile" {
   type        = string
   description = <<-DESC
-  AWS Profile Name from `~/.aws/config that can be used for local execution. This profile is used
+  AWS Profile Name from ~/.aws/config that can be used for local execution. This profile is used
   to preform the following actions:
 
   • `aws s3 sync`: Sync bundle produced by `yarn` to build to s3
+
   • `cognito-idp admin-create-user`: Creates an admin cognito user for dashboard access
-  • `cognito-idp admin-delete-user`: Deletes an admin cognito user if the user should not 
+
+  • `cognito-idp admin-delete-user`: Deletes an admin cognito user if the user should not
   have access to the dashboard anymore, OR, if there is no way for the user to regain access.
-  • `cognito-idp list-users`: Obtains the admin user's ID in order to write the ID to the 
+
+  • `cognito-idp list-users`: Obtains the admin user's ID in order to write the ID to the
   DynamodDB table.
   DESC
   default     = ""
