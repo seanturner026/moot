@@ -1,12 +1,22 @@
 # Moot - A Serverless Release Dashboard
 
-AWS Serverless solution deployed with Terraform which implements a single-page-application dashboard. This dashboard creates releases that are intended to trigger continuous integration (CI) production deploy pipelines. All that is needed to kick off a release is a version number.
+AWS Serverless solution that implements a release dashboard that provides a single button press for deploying code changes to production.
+
+## How it all works
+
+User's onboard github or gitlab repositories (need to specify a BASE (main) and HEAD (develop) branch) in the frontend, at which point you can then `deploy` code changes to a production environment by hitting `deploy`. Deploying creates pull requests which merge the HEAD branch into BASE, and creates a release. Users can also select `hotfix`, which skips the pull request and creates a release based on the BASE branch.
+
+To make it all work, you'll need to configure your production continuous integration deployment pipeline trigger with a regex check on the release version number so that it's only triggered on semver releases, for example. You'll also need to provide a github or gitlab API token to give the dashboard access to make API calls to the respective VCS provider. These tokens will be stored as SSM parameters within AWS.
 
 Deploys trigger the following workflow:
   - Create Github / Gitlab PR base <- head (e.g. main <- develop)
   - Approve PR
   - Create Release based on base branch
-  - Send Slack message to a channel indicating that a release has been created.
+  - Send Slack message to a channel with the release notes.
+
+Hotfix Deploys trigger the following workflow:
+  - Create Release based on base branch
+  - Send Slack message to a channel with the release notes.
 
 This solution utilises the following services:
   - API Gateway (auth + routing)
@@ -14,7 +24,7 @@ This solution utilises the following services:
   - Cognito (auth)
   - DynamoDB (backend storage)
   - Lambda (backend compute)
-  - S3 + Cloudfront (frontend)
+  - S3 + Cloudfront (VueJS frontend)
   - SSM Parameter Store (secrets management)
 
 ## Requirements
@@ -31,6 +41,8 @@ The following tools must be installed in order to fully deploy Moot
 The below snippet will fully deploy the dashboard (backend + frontend). In this instance, I am deploying to a cheap Route53 domain I purchased for testing purposes (`moot.link`).
 
 If your AWS account does not have a Route53 hosted zone, remove the `hosted_zone_name` and `fqdn_alias` lines to use Cloudfront's default certificate and dns.
+
+See the [terraform_examples](https://github.com/seanturner026/moot/tree/main/terraform_examples) directory for deployable examples.
 
 ```hcl
 module "moot" {
@@ -49,11 +61,6 @@ module "moot" {
   tags                           = var.tags
 }
 ```
-
-## Workflows
-
-- Standard Deploy: Merges the HEAD branch into the BASE (e.g. main) branch, creates release based on BASE branch
-- Hotfix Deploy: Creates release based on the BASE branch
 
 ## Repositories View
 
