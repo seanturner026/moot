@@ -94,7 +94,7 @@ resource "null_resource" "create_admin_user" {
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    command     = "aws --region ${data.aws_region.current.name} cognito-idp admin-create-user --user-pool-id ${aws_cognito_user_pool.this.id} --username ${var.admin_user_email} --user-attributes Name=email,Value=${var.admin_user_email}"
+    command     = "AWS_DEFAULT_PROFILE=${local.aws_profile} aws --region ${data.aws_region.current.name} cognito-idp admin-create-user --user-pool-id ${aws_cognito_user_pool.this.id} --username ${var.admin_user_email} --user-attributes Name=email,Value=${var.admin_user_email}"
   }
 }
 
@@ -103,6 +103,6 @@ resource "null_resource" "delete_admin_user" {
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    command     = "aws --region ${data.aws_region.current.name} cognito-idp admin-delete-user --user-pool-id ${aws_cognito_user_pool.this.id} --username ${var.admin_user_email}"
+    command     = "AWS_DEFAULT_PROFILE=${local.aws_profile} aws --region ${data.aws_region.current.name} cognito-idp admin-delete-user --user-pool-id ${aws_cognito_user_pool.this.id} --username ${var.admin_user_email}"
   }
 }

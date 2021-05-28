@@ -24,6 +24,7 @@ The following tools must be installed in order to fully deploy Moot
 - [yarn](https://yarnpkg.com/getting-started/install) -- used to build the frontend locally
 - [awscli](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) -- used to aws s3 sync the frontend assets
 - [go](https://golang.org/doc/install#download) -- requires at least version 16 because of `go modules`
+- gcc (build essentials) -- required for `go build`
 
 ## Installation
 
