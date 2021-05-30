@@ -48,12 +48,12 @@ type configuration struct {
 
 type repository struct {
 	RepoName        string `json:"repo_name,omitempty"`
-	RepoProvider    string `dynamodbav:"SK" json:"repo_provider,omitempty"`
-	RepoOwner       string `dynamodbav:"RepoOwner" json:"repo_owner,omitempty"`
-	BranchBase      string `dynamodbav:"BranchBase" json:"branch_base,omitempty"`
-	BranchHead      string `dynamodbav:"BranchHead" json:"branch_head,omitempty"`
-	CurrentVersion  string `dynamodbav:"CurrentVersion" json:"current_version,omitempty"`
-	GitlabProjectID string `dynamodbav:"GitlabProjectID,omitempty" json:"gitlab_repo_id,omitempty"`
+	RepoProvider    string `json:"repo_provider,omitempty"   dynamodbav:"SK"`
+	RepoOwner       string `json:"repo_owner,omitempty"      dynamodbav:"RepoOwner"`
+	BranchBase      string `json:"branch_base,omitempty"     dynamodbav:"BranchBase"`
+	BranchHead      string `json:"branch_head,omitempty"     dynamodbav:"BranchHead"`
+	CurrentVersion  string `json:"current_version,omitempty" dynamodbav:"CurrentVersion"`
+	GitlabProjectID string `json:"gitlab_repo_id,omitempty"  dynamodbav:"GitlabProjectID,omitempty"`
 }
 
 func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
@@ -73,12 +73,11 @@ func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.API
 		log.Info(fmt.Sprintf("handling request on %s", event.RawPath))
 		message, statusCode := app.repositoriesListHandler(event)
 		return util.GenerateResponseBody(message, statusCode, nil, headers, []string{}), nil
-
-	} else {
-		log.Error(fmt.Sprintf("path %v does not exist", event.RawPath))
-		resp := util.GenerateResponseBody(fmt.Sprintf("Path does not exist %s", event.RawPath), 404, nil, headers, []string{})
-		return resp, nil
 	}
+
+	log.Error(fmt.Sprintf("path %v does not exist", event.RawPath))
+	resp := util.GenerateResponseBody(fmt.Sprintf("Path does not exist %s", event.RawPath), 404, nil, headers, []string{})
+	return resp, nil
 }
 
 func main() {

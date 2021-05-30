@@ -18,7 +18,7 @@ func (m mockQuery) Query(*dynamodb.QueryInput) (*dynamodb.QueryOutput, error) {
 }
 
 func TestListRepos(t *testing.T) {
-	t.Run("Sucessfully queried DynamoDB for items", func(t *testing.T) {
+	t.Run("Successfully queried DynamoDB for items", func(t *testing.T) {
 		dbMock := mockQuery{
 			Response: &dynamodb.QueryOutput{},
 			Error:    nil,

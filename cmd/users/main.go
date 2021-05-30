@@ -44,12 +44,11 @@ func (app application) handler(event events.APIGatewayV2HTTPRequest) (events.API
 		log.Info(fmt.Sprintf("handling request on %v", event.RawPath))
 		message, statusCode := app.usersListHandler(event)
 		return util.GenerateResponseBody(message, statusCode, nil, headers, []string{}), nil
-
-	} else {
-		log.Error(fmt.Sprintf("path %v does not exist", event.RawPath))
-		resp = util.GenerateResponseBody(fmt.Sprintf("Path does not exist %v", event.RawPath), 404, nil, headers, []string{})
-		return resp, nil
 	}
+
+	log.Error(fmt.Sprintf("path %v does not exist", event.RawPath))
+	resp = util.GenerateResponseBody(fmt.Sprintf("Path does not exist %v", event.RawPath), 404, nil, headers, []string{})
+	return resp, nil
 }
 
 func main() {
